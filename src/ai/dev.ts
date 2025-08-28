@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/resource-summarization.ts';
+import '@/ai/flows/vtu-chatbot.ts';
