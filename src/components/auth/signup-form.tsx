@@ -60,8 +60,7 @@ export function SignupForm() {
               </FormControl>
               <FormMessage />
             </FormItem>
-          </FormItem>
-        )}
+          )}
         />
         <FormField
           control={form.control}
