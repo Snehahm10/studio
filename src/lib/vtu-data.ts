@@ -295,23 +295,83 @@ export const vtuResources = {
     ise: {
         '1': [
         {
-          id: '22MATS11',
-          name: 'Mathematics-I for Computer Science Stream',
+          id: 'BMATS101',
+          name: 'Mathematics-I for CSE Stream',
           notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
           questionPapers: { current: '#', previous: '#' },
         },
         {
-          id: '22PHYS12',
-          name: 'Physics for Computer Science Stream',
+          id: 'BPHYS102',
+          name: 'Applied Physics for CSE stream',
           notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
           questionPapers: { current: '#', previous: '#' },
         },
         {
-            id: '22ELE13',
-            name: 'Basic Electrical Engineering',
+            id: 'BPOPS103',
+            name: 'Principles of Programming Using C',
             notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
             questionPapers: { current: '#', previous: '#' },
         },
+        {
+            id: 'BESCK104x',
+            name: 'Engineering Science Course-I',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BETCK105x',
+            name: 'Emerging Technology Course-I',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BPLCK105x',
+            name: 'Programming Languages Course-I',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BENGK106',
+            name: 'Communicative English',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BPWSK106',
+            name: 'Professional Writing Skills in English',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BKSKK107',
+            name: 'Samskrutika Kannada',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BKBKK107',
+            name: 'Balake Kannada',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BICOK107',
+            name: 'Indian Constitution',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BIDTK158',
+            name: 'Innovation and Design Thinking',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        },
+        {
+            id: 'BSFHK158',
+            name: 'Scientific Foundations of Health',
+            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+            questionPapers: { current: '#', previous: '#' },
+        }
       ],
       '2': [
          {
