@@ -219,13 +219,14 @@ export function UploadForm() {
         return;
     }
 
-    setUploadableFiles(allFilesToProcess.map(f => ({ ...f, progress: 0, status: 'pending' })));
+    const filesToUpload = allFilesToProcess.map(f => ({ ...f, progress: 0, status: 'pending' as 'pending' | 'uploading' | 'complete' | 'error'}));
+    setUploadableFiles(filesToUpload);
     setIsSubmitting(true);
     
     let filesUploadedCount = 0;
     try {
-      for (const fileToUpload of allFilesToProcess) {
-        await uploadFile({ ...fileToUpload, progress: 0, status: 'pending' });
+      for (const fileToUpload of filesToUpload) {
+        await uploadFile(fileToUpload);
         filesUploadedCount++;
       }
     } catch (error) {
