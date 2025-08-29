@@ -21,12 +21,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { schemes, branches, years, semesters as allSemesters, cycles } from '@/lib/data';
 import { Loader2, Upload } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { firebaseApp } from '@/lib/firebase';
-import { getStorage, ref, uploadBytes } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, UploadTaskSnapshot } from 'firebase/storage';
 
 const fileSchema = z.array(z.instanceof(File)).optional();
 
@@ -60,6 +61,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function UploadForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -95,46 +97,79 @@ export function UploadForm() {
   
   const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
 
-  async function uploadFile(storagePath: string, file: File) {
+  async function uploadFile(storagePath: string, file: File, onProgress: (progress: number) => void) {
       const storage = getStorage(firebaseApp);
       const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, file);
-      return file.name;
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      return new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+          (snapshot: UploadTaskSnapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
+            onProgress(progress);
+          },
+          (error) => {
+            console.error("Upload failed for file:", file.name, error);
+            reject(error);
+          },
+          () => {
+            resolve(file.name);
+          }
+        );
+      });
   }
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
-    const uploadPromises: Promise<string>[] = [];
+    setUploadProgress(0);
     
-    try {
-      const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
+    const allFiles: { file: File, path: string }[] = [];
+    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
 
-      if (values.resourceType === 'notes') {
-          const moduleFiles = [
-              { files: values.module1Files, name: 'module1' },
-              { files: values.module2Files, name: 'module2' },
-              { files: values.module3Files, name: 'module3' },
-              { files: values.module4Files, name: 'module4' },
-              { files: values.module5Files, name: 'module5' },
-          ];
+    if (values.resourceType === 'notes') {
+        const moduleFiles = [
+            { files: values.module1Files, name: 'module1' },
+            { files: values.module2Files, name: 'module2' },
+            { files: values.module3Files, name: 'module3' },
+            { files: values.module4Files, name: 'module4' },
+            { files: values.module5Files, name: 'module5' },
+        ];
 
-          for (const item of moduleFiles) {
-              if (item.files) {
-                for (const file of item.files) {
-                    uploadPromises.push(uploadFile(`${basePath}/notes/${item.name}/${file.name}`, file));
-                }
+        for (const item of moduleFiles) {
+            if (item.files) {
+              for (const file of item.files) {
+                  allFiles.push({ file, path: `${basePath}/notes/${item.name}/${file.name}` });
               }
-          }
-      } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
-           uploadPromises.push(uploadFile(`${basePath}/questionPapers/${values.questionPaperFile.name}`, values.questionPaperFile));
-      }
+            }
+        }
+    } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
+         allFiles.push({ file: values.questionPaperFile, path: `${basePath}/questionPapers/${values.questionPaperFile.name}` });
+    }
 
+    if (allFiles.length === 0) {
+        setIsLoading(false);
+        return;
+    }
+
+    const totalSize = allFiles.reduce((acc, { file }) => acc + file.size, 0);
+    let totalBytesTransferred = 0;
+    const individualProgress: { [key: string]: number } = {};
+
+
+    const uploadPromises = allFiles.map(({ file, path }) => {
+        return uploadFile(path, file, (progress) => {
+            individualProgress[file.name] = progress * file.size;
+            totalBytesTransferred = Object.values(individualProgress).reduce((acc, bytes) => acc + bytes, 0);
+            setUploadProgress((totalBytesTransferred / totalSize) * 100);
+        });
+    });
+
+    try {
       await Promise.all(uploadPromises);
 
-      console.log('Form submitted:', values);
       toast({
         title: 'Upload Successful',
-        description: `${uploadPromises.length} file(s) have been uploaded successfully.`,
+        description: `${allFiles.length} file(s) have been uploaded successfully.`,
       });
       form.reset();
       const fileInputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
@@ -149,6 +184,7 @@ export function UploadForm() {
        });
     } finally {
       setIsLoading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   }
 
@@ -342,6 +378,13 @@ export function UploadForm() {
               </FormItem>
             )}
           />
+        )}
+        
+        {isLoading && (
+            <div className="space-y-2">
+                <Progress value={uploadProgress} />
+                <p className="text-sm text-muted-foreground text-center">{Math.round(uploadProgress)}% uploaded</p>
+            </div>
         )}
        
         <div className="flex justify-end pt-2">
