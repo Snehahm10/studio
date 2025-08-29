@@ -1,4 +1,3 @@
-import { vtuResources } from './vtu-data';
 
 export type ResourceFile = {
   name: string;
@@ -6,6 +5,7 @@ export type ResourceFile = {
 }
 
 export type Subject = {
+  id: string; // usually the folder name
   name: string;
   notes: { [module: string]: ResourceFile };
   questionPapers: ResourceFile[];
@@ -55,6 +55,5 @@ type Resources = {
   };
 };
 
-// Mock data - in a real app this would come from a database
-// This is now effectively a placeholder.
+// Mock data is no longer needed as we fetch dynamically.
 export const resources: Resources = {};

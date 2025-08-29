@@ -39,57 +39,76 @@ if (getApps().length === 0) {
 }
 
 
-export async function getFilesForSubject(path: string): Promise<Subject[]> {
-  if (!firebaseApp) {
-    console.error("Firebase not initialized");
-    return [];
-  }
-  const storage = getStorage(firebaseApp);
-  const subjectFoldersRef = ref(storage, path);
-  const subjectFolders = await listAll(subjectFoldersRef);
-
-  const subjects: Subject[] = [];
-
-  for (const subjectFolder of subjectFolders.prefixes) {
+async function processSubjectFolder(subjectFolder: StorageReference): Promise<Subject> {
     const subjectName = subjectFolder.name;
     const notes: { [module: string]: ResourceFile } = {};
     const questionPapers: ResourceFile[] = [];
 
-    const notesFolderRef = ref(storage, `${subjectFolder.fullPath}/notes`);
+    const notesFolderRef = ref(subjectFolder.storage, `${subjectFolder.fullPath}/notes`);
     try {
         const noteModuleFolders = await listAll(notesFolderRef);
-        for(const moduleFolder of noteModuleFolders.prefixes) {
+        for (const moduleFolder of noteModuleFolders.prefixes) {
             const moduleFiles = await listAll(moduleFolder);
-            for(const fileRef of moduleFiles.items) {
-                 const url = await getDownloadURL(fileRef);
-                 notes[moduleFolder.name] = { name: fileRef.name, url };
+            if (moduleFiles.items.length > 0) {
+                // Assuming one file per module folder for simplicity in this structure
+                const fileRef = moduleFiles.items[0];
+                const url = await getDownloadURL(fileRef);
+                notes[moduleFolder.name] = { name: fileRef.name, url };
             }
         }
-    } catch(e) {
-        // notes folder might not exist
+    } catch (e) {
+        // notes folder might not exist, which is fine
     }
 
-    const qpFolderRef = ref(storage, `${subjectFolder.fullPath}/questionPapers`);
-
+    const qpFolderRef = ref(subjectFolder.storage, `${subjectFolder.fullPath}/questionPapers`);
     try {
         const qpFiles = await listAll(qpFolderRef);
         for (const fileRef of qpFiles.items) {
             const url = await getDownloadURL(fileRef);
             questionPapers.push({ name: fileRef.name, url });
         }
-    } catch(e) {
-        // qp folder might not exist
+    } catch (e) {
+        // qp folder might not exist, which is fine
     }
 
-
-    subjects.push({
+    return {
+      id: subjectName, // Use folder name as ID
       name: subjectName,
       notes,
       questionPapers,
-    });
-  }
+    };
+}
 
-  return subjects;
+
+export async function getFilesForSubject(path: string, subjectName?: string): Promise<Subject[]> {
+  if (!firebaseApp) {
+    console.error("Firebase not initialized");
+    return [];
+  }
+  const storage = getStorage(firebaseApp);
+
+  if (subjectName) {
+      // Fetch a single subject
+      const subjectFolderRef = ref(storage, `${path}/${subjectName}`);
+      try {
+          // We don't list here, we just assume the folder exists and process it.
+          // A better check would be to get metadata, but this works for a positive case.
+          const subject = await processSubjectFolder(subjectFolderRef);
+          return [subject];
+      } catch (error) {
+          console.log(`No specific subject folder found for "${subjectName}", returning empty.`);
+          // This can happen if the folder doesn't exist, which is a valid case (no resources yet)
+          return [];
+      }
+  } else {
+      // Fetch all subjects in the path
+      const subjectFoldersRef = ref(storage, path);
+      const subjectFoldersList = await listAll(subjectFoldersRef);
+      
+      const subjectPromises = subjectFoldersList.prefixes.map(processSubjectFolder);
+      const subjects = await Promise.all(subjectPromises);
+      return subjects;
+  }
 }
 
 
