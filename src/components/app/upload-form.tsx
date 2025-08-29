@@ -40,7 +40,7 @@ const formSchema = z.object({
 
 export function UploadForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -144,7 +144,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Branch" />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {branches.map((b) => (
@@ -171,7 +171,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Year" />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {years.map((y) => (
@@ -195,7 +195,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
@@ -232,7 +232,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select resource type" />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="notes">Notes</SelectItem>
