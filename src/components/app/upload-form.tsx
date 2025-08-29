@@ -284,7 +284,7 @@ export function UploadForm() {
             : `resources/${watchedFields.scheme}/${watchedFields.branch}/${watchedFields.semester}/${watchedFields.subject}/questionPapers/${file.name}`;
           
           return (
-            <div key={file.url} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+            <div key={filePath} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
               <span className="truncate">{file.name}</span>
               <Button
                 type="button"
@@ -556,5 +556,3 @@ export function UploadForm() {
     </Form>
   );
 }
-
-    
