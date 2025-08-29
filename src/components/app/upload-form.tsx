@@ -25,6 +25,8 @@ import { schemes, branches, years, semesters as allSemesters } from '@/lib/data'
 import { Loader2, Upload } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { firebaseApp } from '@/lib/firebase';
+import { getStorage, ref, uploadBytes } from 'firebase/storage';
 
 const formSchema = z.object({
   scheme: z.string().min(1, 'Please select a scheme'),
@@ -71,20 +73,29 @@ export function UploadForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // In a real app, you would upload the file to a storage service (e.g., Firebase Storage)
-    // and save the metadata to a database.
     
-    // Simulating API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    console.log('Form submitted:', values);
-    toast({
-      title: 'Upload Successful (Simulated)',
-      description: `Your file "${values.file.name}" has been uploaded.`,
-    });
-    
-    setIsLoading(false);
-    form.reset();
+    try {
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}/${values.file.name}`);
+
+      await uploadBytes(storageRef, values.file);
+
+      console.log('Form submitted:', values);
+      toast({
+        title: 'Upload Successful',
+        description: `Your file "${values.file.name}" has been uploaded successfully.`,
+      });
+      form.reset();
+    } catch (error) {
+       console.error("Upload error:", error);
+       toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: 'There was an error uploading your file. Please try again.',
+       });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -125,7 +136,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Branch" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {branches.map((b) => (
