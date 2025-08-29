@@ -104,7 +104,7 @@ export function UploadForm() {
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
-    let uploadedFileCount = 0;
+    const uploadPromises: Promise<string>[] = [];
     
     try {
       const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
@@ -121,20 +121,20 @@ export function UploadForm() {
           for (const item of moduleFiles) {
               if (item.files) {
                 for (const file of item.files) {
-                    await uploadFile(`${basePath}/notes/${item.name}/${file.name}`, file);
-                    uploadedFileCount++;
+                    uploadPromises.push(uploadFile(`${basePath}/notes/${item.name}/${file.name}`, file));
                 }
               }
           }
       } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
-           await uploadFile(`${basePath}/questionPapers/${values.questionPaperFile.name}`, values.questionPaperFile);
-           uploadedFileCount++;
+           uploadPromises.push(uploadFile(`${basePath}/questionPapers/${values.questionPaperFile.name}`, values.questionPaperFile));
       }
+
+      await Promise.all(uploadPromises);
 
       console.log('Form submitted:', values);
       toast({
         title: 'Upload Successful',
-        description: `${uploadedFileCount} file(s) have been uploaded successfully.`,
+        description: `${uploadPromises.length} file(s) have been uploaded successfully.`,
       });
       form.reset();
       const fileInputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
