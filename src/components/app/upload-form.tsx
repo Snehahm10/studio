@@ -1,0 +1,214 @@
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { schemes, branches, years, semesters } from '@/lib/data';
+import { Loader2, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
+const formSchema = z.object({
+  scheme: z.string().min(1, 'Please select a scheme'),
+  branch: z.string().min(1, 'Please select a branch'),
+  semester: z.string().min(1, 'Please select a semester'),
+  subject: z.string().min(1, 'Please enter a subject name'),
+  resourceType: z.enum(['notes', 'questionPaper']),
+  file: z.instanceof(File).refine(file => file.size > 0, 'Please select a file'),
+});
+
+export function UploadForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      scheme: '',
+      branch: '',
+      semester: '',
+      subject: '',
+      resourceType: 'notes',
+      file: undefined,
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    // In a real app, you would upload the file to a storage service (e.g., Firebase Storage)
+    // and save the metadata to a database.
+    
+    // Simulating API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log('Form submitted:', values);
+    toast({
+      title: 'Upload Successful (Simulated)',
+      description: `Your file "${values.file.name}" has been uploaded.`,
+    });
+    
+    setIsLoading(false);
+    form.reset();
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+           <FormField
+                control={form.control}
+                name="scheme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Scheme</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Scheme" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {schemes.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+            <FormField
+                control={form.control}
+                name="branch"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Branch</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Branch" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {branches.map((b) => (
+                          <SelectItem key={b.value} value={b.value}>
+                            {b.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+            <FormField
+                control={form.control}
+                name="semester"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Semester</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Semester" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {semesters.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+            <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject Name or Code</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., Data Structures or 22CS32" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+            />
+        </div>
+         <FormField
+                control={form.control}
+                name="resourceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Resource Type</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select resource type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="notes">Notes</SelectItem>
+                        <SelectItem value="questionPaper">Question Paper</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+        <FormField
+          control={form.control}
+          name="file"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>File</FormLabel>
+              <FormControl>
+                <Input 
+                  type="file" 
+                  accept="application/pdf"
+                  onChange={(e) => field.onChange(e.target.files?.[0])}
+                />
+              </FormControl>
+              <FormDescription>Please upload a PDF file.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={isLoading} style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }} className="hover:bg-accent/90">
+                {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                <Upload className="mr-2 h-4 w-4" />
+                )}
+                Upload File
+            </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}

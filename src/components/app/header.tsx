@@ -13,11 +13,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, GraduationCap } from 'lucide-react';
+import { LogOut, User, GraduationCap, Upload } from 'lucide-react';
 
 export function AppHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   if (pathname === '/login' || pathname === '/signup') {
     return null;
@@ -30,6 +31,14 @@ export function AppHeader() {
           <GraduationCap className="h-6 w-6 text-primary" />
           <span className="font-bold sm:inline-block">VTU Assistant</span>
         </Link>
+        <nav className="flex items-center gap-4 text-sm">
+          <Link
+            href="/upload"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Upload
+          </Link>
+        </nav>
         <div className="flex flex-1 items-center justify-end">
           {user && (
             <DropdownMenu>
@@ -51,6 +60,10 @@ export function AppHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/upload')}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  <span>Upload</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
