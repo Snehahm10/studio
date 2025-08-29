@@ -365,6 +365,38 @@ export const vtuResources = {
             },
         }
       ],
+      '7': [
+        {
+          id: '21CS71',
+          name: 'Artificial Intelligence and Machine Learning',
+          notes: {
+            module1: 'https://vtucircle.com/21cs71-vtu-notes/#Module_1',
+            module2: 'https://vtucircle.com/21cs71-vtu-notes/#Module_2',
+            module3: 'https://vtucircle.com/21cs71-vtu-notes/#Module_3',
+            module4: 'https://vtucircle.com/21cs71-vtu-notes/#Module_4',
+            module5: 'https://vtucircle.com/21cs71-vtu-notes/#Module_5',
+          },
+          questionPapers: {
+            current: 'https://vtucircle.com/2021-scheme-question-papers/7th-sem-2021-scheme-question-papers/',
+            previous: 'https://vtucircle.com/2021-scheme-question-papers/7th-sem-2021-scheme-question-papers/',
+          },
+        },
+        {
+          id: '21CS72',
+          name: 'Big Data Analytics',
+          notes: {
+            module1: 'https://vtucircle.com/21cs72-vtu-notes/#Module_1',
+            module2: 'https://vtucircle.com/21cs72-vtu-notes/#Module_2',
+            module3: 'https://vtucircle.com/21cs72-vtu-notes/#Module_3',
+            module4: 'https://vtucircle.com/21cs72-vtu-notes/#Module_4',
+            module5: 'https://vtucircle.com/21cs72-vtu-notes/#Module_5',
+          },
+          questionPapers: {
+            current: 'https://vtucircle.com/2021-scheme-question-papers/7th-sem-2021-scheme-question-papers/',
+            previous: 'https://vtucircle.com/2021-scheme-question-papers/7th-sem-2021-scheme-question-papers/',
+          },
+        },
+      ],
     },
     ise: {
         '5': [
@@ -479,3 +511,5 @@ export const vtuResources = {
     }
   },
 };
+
+    
