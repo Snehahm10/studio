@@ -90,7 +90,7 @@ export function UploadForm() {
         description: `Your file "${values.file.name}" has been uploaded successfully.`,
       });
       form.reset();
-      // Also reset file input
+      // Reset file input
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if(fileInput) fileInput.value = '';
 
