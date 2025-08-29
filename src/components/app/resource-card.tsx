@@ -25,7 +25,6 @@ export function ResourceCard({ subject }: ResourceCardProps) {
             </div>
             <div className="flex-1">
               <CardTitle className="text-lg leading-tight">{subject.name}</CardTitle>
-              <CardDescription className="pt-1">{subject.id}</CardDescription>
             </div>
           </div>
         </CardHeader>

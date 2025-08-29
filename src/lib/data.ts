@@ -1,20 +1,16 @@
 import { vtuResources } from './vtu-data';
 
-export type Subject = {
-  id: string;
+export type ResourceFile = {
   name: string;
-  notes: {
-    module1: string;
-    module2: string;
-    module3: string;
-    module4: string;
-    module5: string;
-  };
-  questionPapers: {
-    current: string;
-    previous: string;
-  };
+  url: string;
+}
+
+export type Subject = {
+  name: string;
+  notes: { [module: string]: ResourceFile };
+  questionPapers: ResourceFile[];
 };
+
 
 export const schemes = [
   { value: '2022', label: '2022 Scheme' },
@@ -54,10 +50,11 @@ export const cycles = [
 type Resources = {
   [scheme: string]: {
     [branch: string]: {
-      [semester: string]: Subject[];
+      [semester: string]: any[]; // This is now dynamic
     };
   };
 };
 
 // Mock data - in a real app this would come from a database
-export const resources: Resources = vtuResources;
+// This is now effectively a placeholder.
+export const resources: Resources = {};

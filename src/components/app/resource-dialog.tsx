@@ -19,43 +19,50 @@ type ResourceDialogProps = {
 };
 
 export function ResourceDialog({ isOpen, onOpenChange, subject }: ResourceDialogProps) {
+  const hasNotes = subject.notes && Object.keys(subject.notes).length > 0;
+  const hasQuestionPapers = subject.questionPapers && subject.questionPapers.length > 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{subject.name}</DialogTitle>
-          <DialogDescription>{subject.id}</DialogDescription>
+          <DialogDescription>Resources for {subject.name}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-            <div>
-                <h4 className="font-semibold mb-2 flex items-center"><Book className="mr-2 h-4 w-4"/>Notes</h4>
-                <Separator />
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                    {Object.entries(subject.notes).map(([key, value], index) => (
-                        <Button asChild variant="outline" key={key}>
-                            <Link href={value} target="_blank">
-                                Module {index + 1}
-                            </Link>
+            {hasNotes && (
+              <div>
+                  <h4 className="font-semibold mb-2 flex items-center"><Book className="mr-2 h-4 w-4"/>Notes</h4>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                      {Object.entries(subject.notes).map(([key, value]) => (
+                          <Button asChild variant="outline" key={key}>
+                              <Link href={value.url} target="_blank" rel="noopener noreferrer">
+                                  {value.name}
+                              </Link>
+                          </Button>
+                      ))}
+                  </div>
+              </div>
+            )}
+            {hasQuestionPapers && (
+              <div>
+                  <h4 className="font-semibold mb-2 flex items-center"><FileText className="mr-2 h-4 w-4"/>Question Papers</h4>
+                  <Separator />
+                  <div className="grid grid-cols-1 gap-2 mt-2">
+                      {subject.questionPapers.map((qp) => (
+                        <Button asChild variant="secondary" key={qp.url}>
+                          <Link href={qp.url} target="_blank" rel="noopener noreferrer">
+                             {qp.name}
+                          </Link>
                         </Button>
-                    ))}
-                </div>
-            </div>
-             <div>
-                <h4 className="font-semibold mb-2 flex items-center"><FileText className="mr-2 h-4 w-4"/>Question Papers</h4>
-                <Separator />
-                <div className="grid grid-cols-1 gap-2 mt-2">
-                    <Button asChild variant="secondary">
-                        <Link href={subject.questionPapers.current} target="_blank">
-                           Current Year Model Paper
-                        </Link>
-                    </Button>
-                     <Button asChild variant="secondary">
-                        <Link href={subject.questionPapers.previous} target="_blank">
-                           Previous Year Model Paper
-                        </Link>
-                    </Button>
-                </div>
-            </div>
+                      ))}
+                  </div>
+              </div>
+            )}
+            {!hasNotes && !hasQuestionPapers && (
+              <p className="text-center text-muted-foreground">No resources found for this subject yet.</p>
+            )}
         </div>
       </DialogContent>
     </Dialog>

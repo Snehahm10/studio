@@ -27,18 +27,19 @@ export function HomePageClient() {
       const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch resources.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch resources.');
       }
       
       const data = await response.json();
       setSubjects(data);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not fetch resources. Please try again later.',
+        description: error.message || 'Could not fetch resources. Please try again later.',
       });
       setSubjects([]);
     } finally {
