@@ -1,7 +1,36 @@
+
 // Data from https://vtucircle.com/
 export const vtuResources = {
   '2022': {
     cse: {
+      '1': [
+        {
+          id: '22MATS11',
+          name: 'Mathematics-I for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+        {
+          id: '22PHYS12',
+          name: 'Physics for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+      ],
+      '2': [
+        {
+          id: '22MATS21',
+          name: 'Mathematics-II for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+        {
+          id: '22CHE22',
+          name: 'Chemistry for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+      ],
       '3': [
         {
           id: '22CS31',
@@ -126,8 +155,40 @@ export const vtuResources = {
           },
         },
       ],
+      '5': [],
+      '6': [],
+      '7': [],
+      '8': [],
     },
-     ise: {
+    ise: {
+      '1': [
+        {
+          id: '22MATS11',
+          name: 'Mathematics-I for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+        {
+          id: '22PHYS12',
+          name: 'Physics for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+      ],
+      '2': [
+         {
+          id: '22MATS21',
+          name: 'Mathematics-II for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+        {
+          id: '22CHE22',
+          name: 'Chemistry for Computer Science Stream',
+          notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
+          questionPapers: { current: '#', previous: '#' },
+        },
+      ],
       '3': [
         {
           id: '22CS31',
@@ -252,10 +313,24 @@ export const vtuResources = {
           },
         },
       ],
+      '5': [],
+      '6': [],
+      '7': [],
+      '8': [],
+    },
+    ece: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
+    },
+    me: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
+    },
+    cv: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
     }
   },
   '2021': {
     cse: {
+      '1': [], '2': [], '3': [], '4': [],
       '5': [
         {
           id: '21CS51',
@@ -397,8 +472,10 @@ export const vtuResources = {
           },
         },
       ],
+      '8': [],
     },
     ise: {
+        '1': [], '2': [], '3': [], '4': [],
         '5': [
             {
               id: '21CS51',
@@ -508,8 +585,17 @@ export const vtuResources = {
                 },
             }
           ],
+        '7': [],
+        '8': [],
+    },
+    ece: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
+    },
+    me: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
+    },
+    cv: {
+      '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [],
     }
   },
 };
-
-    
