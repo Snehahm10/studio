@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { schemes, branches, years, semesters as allSemesters } from '@/lib/data';
+import { schemes, branches, years, semesters as allSemesters, cycles } from '@/lib/data';
 import { Loader2, Upload } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +60,8 @@ export function UploadForm() {
 
   const availableSemesters = useMemo(() => {
     if (!selectedYear) return [];
+    if (selectedYear === '1') return cycles;
+
     const yearNum = parseInt(selectedYear, 10);
     if (isNaN(yearNum)) return [];
     
@@ -70,6 +73,8 @@ export function UploadForm() {
         return semNum >= startSem && semNum <= endSem;
     });
   }, [selectedYear]);
+  
+  const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -86,6 +91,10 @@ export function UploadForm() {
         description: `Your file "${values.file.name}" has been uploaded successfully.`,
       });
       form.reset();
+      // Also reset file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if(fileInput) fileInput.value = '';
+
     } catch (error) {
        console.error("Upload error:", error);
        toast({
@@ -182,11 +191,11 @@ export function UploadForm() {
                 name="semester"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Semester</FormLabel>
+                    <FormLabel>{semesterLabel}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedYear}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={selectedYear ? "Select Semester" : "Select Year first"} />
+                          <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -240,14 +249,15 @@ export function UploadForm() {
         <FormField
           control={form.control}
           name="file"
-          render={({ field }) => (
+          render={({ field: { onChange, value, ...rest } }) => (
             <FormItem>
               <FormLabel>File</FormLabel>
               <FormControl>
                 <Input 
                   type="file" 
                   accept="application/pdf"
-                  onChange={(e) => field.onChange(e.target.files?.[0])}
+                  onChange={(e) => onChange(e.target.files?.[0])}
+                  {...rest}
                 />
               </FormControl>
               <FormDescription>Please upload a PDF file.</FormDescription>
