@@ -117,48 +117,6 @@ export const vtuResources = {
             name: 'Emerging Technology Course-II',
             notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
             questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BPWSK206',
-            name: 'Professional Writing Skills in English',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BENGK206',
-            name: 'Communicative English',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BICOK207',
-            name: 'Indian Constitution',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BKSKK207',
-            name: 'Samskrutika Kannada',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BKBKK207',
-            name: 'Balake Kannada',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BSFHK258',
-            name: 'Scientific Foundations of Health',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'KIDTK258',
-            name: 'Innovation and Design Thinking',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
         }
       ],
       '2': [],
@@ -440,48 +398,6 @@ export const vtuResources = {
         {
             id: 'BPLCK205x',
             name: 'Emerging Technology Course-II',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BPWSK206',
-            name: 'Professional Writing Skills in English',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BENGK206',
-            name: 'Communicative English',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BICOK207',
-            name: 'Indian Constitution',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BKSKK207',
-            name: 'Samskrutika Kannada',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BKBKK207',
-            name: 'Balake Kannada',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'BSFHK258',
-            name: 'Scientific Foundations of Health',
-            notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
-            questionPapers: { current: '#', previous: '#' },
-        },
-        {
-            id: 'KIDTK258',
-            name: 'Innovation and Design Thinking',
             notes: { module1: '#', module2: '#', module3: '#', module4: '#', module5: '#' },
             questionPapers: { current: '#', previous: '#' },
         }
