@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { schemes, branches, years, semesters as allSemesters } from '@/lib/data';
+import { schemes, branches, years, semesters as allSemesters, cycles } from '@/lib/data';
 import { Loader2, Search } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
@@ -49,14 +49,9 @@ export function CourseSelector({ onSearch, isLoading }: CourseSelectorProps) {
 
   const selectedYear = form.watch('year');
 
-  useEffect(() => {
-    if (selectedYear === '1') {
-      form.setValue('semester', '1');
-    }
-  }, [selectedYear, form]);
-
   const availableSemesters = useMemo(() => {
-    if (!selectedYear || selectedYear === '1') return [];
+    if (!selectedYear) return [];
+    if (selectedYear === '1') return cycles;
     
     const yearNum = parseInt(selectedYear, 10);
     if (isNaN(yearNum)) return [];
@@ -140,9 +135,7 @@ export function CourseSelector({ onSearch, isLoading }: CourseSelectorProps) {
                     <FormLabel>Year</FormLabel>
                     <Select onValueChange={(value) => {
                         field.onChange(value);
-                        if (value !== '1') {
-                            form.resetField('semester');
-                        }
+                        form.resetField('semester');
                     }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -166,10 +159,10 @@ export function CourseSelector({ onSearch, isLoading }: CourseSelectorProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{semesterLabel}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedYear || selectedYear === '1'}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedYear}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={selectedYear === '1' ? 'P & C Cycle' : (selectedYear ? `Select ${semesterLabel}`: "Select Year first")} />
+                          <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
