@@ -28,6 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 import { firebaseApp } from '@/lib/firebase';
 import { getStorage, ref, uploadBytes } from 'firebase/storage';
 
+const fileSchema = z.instanceof(File).optional();
+
 const formSchema = z.object({
   scheme: z.string().min(1, 'Please select a scheme'),
   branch: z.string().min(1, 'Please select a branch'),
@@ -35,14 +37,32 @@ const formSchema = z.object({
   semester: z.string().min(1, 'Please select a semester'),
   subject: z.string().min(1, 'Please enter a subject name'),
   resourceType: z.enum(['notes', 'questionPaper']),
-  file: z.instanceof(File).refine(file => file.size > 0, 'Please select a file'),
+  questionPaperFile: fileSchema,
+  module1File: fileSchema,
+  module2File: fileSchema,
+  module3File: fileSchema,
+  module4File: fileSchema,
+  module5File: fileSchema,
+}).refine(data => {
+  if (data.resourceType === 'questionPaper') {
+    return data.questionPaperFile && data.questionPaperFile.size > 0;
+  }
+  if (data.resourceType === 'notes') {
+    return data.module1File || data.module2File || data.module3File || data.module4File || data.module5File;
+  }
+  return false;
+}, {
+  message: 'Please upload at least one file.',
+  path: ['questionPaperFile'], // You can adjust the path to a more general one if needed
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 export function UploadForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       scheme: '',
@@ -51,11 +71,11 @@ export function UploadForm() {
       semester: '',
       subject: '',
       resourceType: 'notes',
-      file: undefined,
     },
   });
 
   const selectedYear = form.watch('year');
+  const resourceType = form.watch('resourceType');
 
   const availableSemesters = useMemo(() => {
     if (!selectedYear) return [];
@@ -75,31 +95,55 @@ export function UploadForm() {
   
   const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function uploadFile(storagePath: string, file: File) {
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, file);
+      return file.name;
+  }
+
+  async function onSubmit(values: FormValues) {
     setIsLoading(true);
+    let uploadedFiles: string[] = [];
     
     try {
-      const storage = getStorage(firebaseApp);
-      const storageRef = ref(storage, `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}/${values.file.name}`);
+      const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
 
-      await uploadBytes(storageRef, values.file);
+      if (values.resourceType === 'notes') {
+          const moduleFiles = [
+              { key: 'module1File', file: values.module1File, name: 'module1' },
+              { key: 'module2File', file: values.module2File, name: 'module2' },
+              { key: 'module3File', file: values.module3File, name: 'module3' },
+              { key: 'module4File', file: values.module4File, name: 'module4' },
+              { key: 'module5File', file: values.module5File, name: 'module5' },
+          ];
+
+          for (const item of moduleFiles) {
+              if (item.file) {
+                const fileName = await uploadFile(`${basePath}/notes/${item.name}/${item.file.name}`, item.file);
+                uploadedFiles.push(fileName);
+              }
+          }
+      } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
+           const fileName = await uploadFile(`${basePath}/questionPapers/${values.questionPaperFile.name}`, values.questionPaperFile);
+           uploadedFiles.push(fileName);
+      }
 
       console.log('Form submitted:', values);
       toast({
         title: 'Upload Successful',
-        description: `Your file "${values.file.name}" has been uploaded successfully.`,
+        description: `Your file(s) have been uploaded successfully.`,
       });
       form.reset();
-      // Reset file input
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if(fileInput) fileInput.value = '';
+      const fileInputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
+      fileInputs.forEach(input => input.value = '');
 
     } catch (error) {
        console.error("Upload error:", error);
        toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'There was an error uploading your file. Please try again.',
+        description: 'There was an error uploading your file(s). Please try again.',
        });
     } finally {
       setIsLoading(false);
@@ -245,25 +289,58 @@ export function UploadForm() {
               />
         </div>
        
-        <FormField
-          control={form.control}
-          name="file"
-          render={({ field: { onChange, value, ...rest } }) => (
-            <FormItem>
-              <FormLabel>File</FormLabel>
-              <FormControl>
-                <Input 
-                  type="file" 
-                  accept="application/pdf"
-                  onChange={(e) => onChange(e.target.files?.[0])}
-                  {...rest}
-                />
-              </FormControl>
-              <FormDescription>Please upload a PDF file.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {resourceType === 'notes' && (
+          <div className="space-y-4 rounded-lg border p-4">
+            <h3 className="text-lg font-medium">Module Notes</h3>
+            <FormDescription>Upload PDF files for each module. You can upload one or more.</FormDescription>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2, 3, 4, 5].map((moduleNumber) => (
+                 <FormField
+                    key={moduleNumber}
+                    control={form.control}
+                    name={`module${moduleNumber}File` as keyof FormValues}
+                    render={({ field: { onChange, value, ...rest } }) => (
+                      <FormItem>
+                        <FormLabel>Module {moduleNumber}</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="file" 
+                            accept="application/pdf"
+                            onChange={(e) => onChange(e.target.files?.[0])}
+                            {...rest}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resourceType === 'questionPaper' && (
+           <FormField
+            control={form.control}
+            name="questionPaperFile"
+            render={({ field: { onChange, value, ...rest } }) => (
+              <FormItem>
+                <FormLabel>Question Paper File</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="file" 
+                    accept="application/pdf"
+                    onChange={(e) => onChange(e.target.files?.[0])}
+                    {...rest}
+                  />
+                </FormControl>
+                <FormDescription>Please upload a PDF file.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+       
         <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isLoading} style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }} className="hover:bg-accent/90">
                 {isLoading ? (
@@ -271,7 +348,7 @@ export function UploadForm() {
                 ) : (
                 <Upload className="mr-2 h-4 w-4" />
                 )}
-                Upload File
+                Upload File(s)
             </Button>
         </div>
       </form>
