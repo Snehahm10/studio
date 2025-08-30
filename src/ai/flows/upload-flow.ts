@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for uploading files to Firebase Storage.
@@ -52,7 +53,11 @@ const uploadFileFlow = ai.defineFlow(
 
     } catch (error: any) {
         console.error(`File upload failed for ${input.fileName}:`, error);
-        return { success: false, error: error.message || 'An unknown error occurred during file upload.' };
+        // Provide a more specific error message if possible
+        const errorMessage = error.code === 'storage/unauthorized'
+            ? 'Permission denied. Please check your Firebase Storage security rules.'
+            : error.message || 'An unknown error occurred during file upload.';
+        return { success: false, error: errorMessage };
     }
   }
 );
