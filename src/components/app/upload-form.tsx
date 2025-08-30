@@ -257,13 +257,15 @@ export function UploadForm() {
     setUploadableFiles(filesToUpload);
     setIsSubmitting(true);
     
-    let filesUploadedCount = 0;
     let anyError = false;
 
     for (const fileToUpload of filesToUpload) {
       try {
         await uploadFile(fileToUpload);
-        filesUploadedCount++;
+        toast({
+          title: 'Upload Successful',
+          description: `Successfully uploaded "${fileToUpload.file.name}".`,
+        });
       } catch (error: any) {
         anyError = true;
         if(error.code !== 'storage/canceled') {
@@ -277,23 +279,13 @@ export function UploadForm() {
     }
     
     setIsSubmitting(false);
-
-    if (filesUploadedCount === allFilesToProcess.length && filesUploadedCount > 0 && !anyError) {
-      toast({
-        title: 'Upload Successful',
-        description: `${filesUploadedCount} file(s) have been uploaded and processed.`,
-      });
-      ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
-      setUploadableFiles([]);
-      fetchSubject();
-    } else if (filesUploadedCount > 0 && anyError) {
-        toast({
-        variant: 'destructive',
-        title: 'Upload Incomplete',
-        description: `Only ${filesUploadedCount} of ${allFilesToProcess.length} files were processed. Check for errors.`,
-      });
-      fetchSubject();
+    
+    // Clear form fields and refresh list after all uploads are attempted
+    ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
+    if (!anyError && allFilesToProcess.length > 0) {
+      setUploadableFiles([]); // Clear progress list only if no errors
     }
+    fetchSubject(); // Refresh the list of existing files
   }
 
   const renderExistingFiles = (files: { [key: string]: ResourceFile } | ResourceFile[], isNotes: boolean) => {
@@ -592,3 +584,5 @@ export function UploadForm() {
     </Form>
   );
 }
+
+    
