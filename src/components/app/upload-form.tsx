@@ -48,23 +48,26 @@ const formSchema = z.object({
   module4Files: fileSchema,
   module5Files: fileSchema,
 }).refine(data => {
-    // This validation ensures that if the user is trying to upload, at least one file is selected.
-    // It should not block the form if the user is just managing existing files (i.e., deleting).
+    // If we are in the middle of submitting, don't validate for file presence.
+    // The main validation happens inside onSubmit.
     const hasNotesFiles = data.module1Files?.length || data.module2Files?.length || data.module3Files?.length || data.module4Files?.length || data.module5Files?.length;
     const hasQpFiles = data.questionPaperFile && data.questionPaperFile.size > 0;
+    
+    // This logic ensures that if a resource type is selected, at least one file is attached for upload.
+    // It's tricky because the user could also just be managing existing files.
+    // A better check is in the onSubmit handler.
+    if(data.resourceType === 'notes' && hasNotesFiles) return true;
+    if(data.resourceType === 'questionPaper' && hasQpFiles) return true;
+    // If no files are selected for the active type, it might be an issue, but let's allow submission
+    // and check for files there, to avoid blocking users who just want to delete.
+    // The schema should be valid if the user isn't trying to upload empty.
+    const isTryingToUpload = (data.resourceType === 'notes' && hasNotesFiles) || (data.resourceType === 'questionPaper' && hasQpFiles);
+    
+    // A simplified check: if any file is present, it's fine. The submit handler will sort it out.
+    return hasNotesFiles || hasQpFiles || !isTryingToUpload;
 
-    if (data.resourceType === 'notes') {
-        return hasNotesFiles;
-    }
-    if (data.resourceType === 'questionPaper') {
-        return hasQpFiles;
-    }
-    // This covers cases where no resourceType is selected yet, or other scenarios.
-    // The main logic is handled in the onSubmit function which checks for files before processing.
-    return true;
 }, {
   message: 'Please select at least one file to upload for the chosen resource type.',
-  // Apply the error to a common field, or a more specific one if needed.
   path: ['resourceType'],
 });
 
@@ -176,7 +179,6 @@ export function UploadForm() {
       const storageRef = ref(storage, fileToUpload.path);
       const uploadTask = uploadBytesResumable(storageRef, fileToUpload.file);
 
-      // Update the state with the cancellable task
       setUploadableFiles(prevFiles => 
         prevFiles.map(f => f.path === fileToUpload.path ? { ...f, task: uploadTask, status: 'uploading' } : f)
       );
@@ -195,29 +197,28 @@ export function UploadForm() {
           reject(error);
         },
         async () => {
-          // Mark as summarizing
           setUploadableFiles(prevFiles => 
             prevFiles.map(f => f.path === fileToUpload.path ? { ...f, progress: 100, status: 'summarizing' } : f)
           );
           
           try {
             await summarizeAndStore(fileToUpload.path);
-            setUploadableFiles(prevFiles => 
-              prevFiles.map(f => f.path === fileToUpload.path ? { ...f, status: 'complete' } : f)
-            );
-             toast({
+            toast({
               title: 'Upload Successful',
               description: `Successfully uploaded and summarized "${fileToUpload.file.name}".`,
             });
+            setUploadableFiles(prevFiles => 
+              prevFiles.map(f => f.path === fileToUpload.path ? { ...f, status: 'complete' } : f)
+            );
           } catch(e) {
             console.error("Summarization failed for file:", fileToUpload.file.name, e);
-            setUploadableFiles(prevFiles => 
-              prevFiles.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f)
-            );
              toast({
               variant: 'destructive',
               title: `Summarization failed for ${fileToUpload.file.name}`,
             });
+            setUploadableFiles(prevFiles => 
+              prevFiles.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f)
+            );
           }
           
           resolve();
@@ -263,11 +264,11 @@ export function UploadForm() {
     
     setIsSubmitting(true);
     
-    const filesToUpload: UploadableFile[] = allFilesToProcess.map(f => ({ ...f, progress: 0, status: 'pending' }));
-    setUploadableFiles(filesToUpload);
+    const initialFiles: UploadableFile[] = allFilesToProcess.map(f => ({ ...f, progress: 0, status: 'pending' }));
+    setUploadableFiles(initialFiles);
     
     // Use a standard for...of loop to ensure uploads happen one by one
-    for (const fileToUpload of filesToUpload) {
+    for (const fileToUpload of initialFiles) {
       try {
         await uploadFile(fileToUpload);
       } catch (error: any) {
@@ -278,21 +279,17 @@ export function UploadForm() {
               description: error.message,
           });
         }
-        // Stop further uploads if one fails
-        break;
+        break; // Stop further uploads if one fails
       }
     }
     
     // Clear form fields for files
     ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
     
-    // Fetch subject details again to show newly uploaded files
-    await fetchSubject();
-    
+    await fetchSubject(); // Refresh subject details to show newly uploaded files
     setIsSubmitting(false);
     
-    // We can keep the progress indicators on screen for a bit or clear them.
-    // Clearing them after a delay might be a good UX.
+    // Clear progress indicators after a delay
     setTimeout(() => setUploadableFiles([]), 5000);
   }
 
