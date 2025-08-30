@@ -1,7 +1,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, FirebaseApp } from "firebase/app";
-import { getStorage, ref, listAll, getDownloadURL, getMetadata, updateMetadata, ListResult, StorageReference, getBytes, deleteObject, uploadBytes } from "firebase/storage";
+import { getStorage, ref, listAll, getDownloadURL, getMetadata, updateMetadata, ListResult, StorageReference, getBytes, deleteObject, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { Subject, ResourceFile } from "./data";
 
 // Correct and verified Firebase configuration
