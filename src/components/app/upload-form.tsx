@@ -27,10 +27,9 @@ import { schemes, branches, years, semesters as allSemesters, cycles, Subject, R
 import { Loader2, Upload, File as FileIcon, CheckCircle2, Trash2, Bot, XCircle } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { firebaseApp } from '@/lib/firebase';
-import { getStorage, ref, uploadBytesResumable, UploadTaskSnapshot, deleteObject, UploadTask, getDownloadURL } from 'firebase/storage';
+import { firebaseApp, deleteFileByPath } from '@/lib/firebase';
 import { useDebounce } from 'use-debounce';
-import { summarizeAndStore } from '@/lib/actions';
+import { uploadFile } from '@/lib/actions';
 
 const fileSchema = z.custom<File[]>(files => Array.isArray(files) && files.every(file => file instanceof File), "Please upload valid files.").optional();
 
@@ -68,9 +67,24 @@ type UploadableFile = {
   file: File;
   path: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'complete' | 'summarizing' | 'error' | 'canceled';
-  task?: UploadTask;
+  status: 'pending' | 'uploading' | 'complete' | 'error' | 'canceled';
 }
+
+// Helper to convert file to base64
+const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+        const result = (reader.result as string).split(',')[1];
+        if (!result) {
+            reject(new Error("Failed to read file as base64."));
+            return;
+        }
+        resolve(result);
+    };
+    reader.onerror = error => reject(error);
+});
+
 
 export function UploadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,9 +164,7 @@ export function UploadForm() {
     }
     setIsDeleting(filePath);
     try {
-      const storage = getStorage(firebaseApp);
-      const fileRef = ref(storage, filePath);
-      await deleteObject(fileRef);
+      await deleteFileByPath(filePath);
       toast({ title: 'File Deleted', description: 'The file has been successfully deleted.' });
       fetchSubject(); // Refresh the file list
     } catch (error) {
@@ -163,62 +175,40 @@ export function UploadForm() {
     }
   };
 
-  const uploadFile = (fileToUpload: UploadableFile): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        const storage = getStorage(firebaseApp);
-        const storageRef = ref(storage, fileToUpload.path);
-        const uploadTask = uploadBytesResumable(storageRef, fileToUpload.file);
+const processSingleFile = async (fileToUpload: UploadableFile): Promise<void> => {
+    setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'uploading' } : f));
 
-        setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'uploading', task: uploadTask } : f));
+    try {
+        const fileContent = await toBase64(fileToUpload.file);
+        
+        const result = await uploadFile({
+            fileName: fileToUpload.path,
+            fileContent: fileContent,
+            contentType: fileToUpload.file.type,
+        });
 
-        uploadTask.on('state_changed',
-            (snapshot: UploadTaskSnapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, progress } : f));
-            },
-            (error) => {
-                console.error(`Upload Error for ${fileToUpload.file.name}:`, error);
-                setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f));
-                reject(error);
-            },
-            async () => {
-                try {
-                    setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'summarizing', progress: 100 } : f));
-                    
-                    const result = await summarizeAndStore(fileToUpload.path);
-
-                    if (result.success) {
-                        setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'complete' } : f));
-                        toast({
-                            title: 'Upload Successful',
-                            description: `Successfully uploaded and processed "${fileToUpload.file.name}".`,
-                        });
-                    } else {
-                        throw new Error(result.error || "Summarization failed.");
-                    }
-                } catch (e: any) {
-                    console.error(`Processing failed for ${fileToUpload.path}:`, e);
-                    setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f));
-                    toast({
-                        variant: 'destructive',
-                        title: `Processing failed for ${fileToUpload.file.name}`,
-                        description: e.message || "The file was uploaded, but processing failed."
-                    });
-                }
-                resolve();
-            }
-        );
-    });
+        if (result.success) {
+            setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'complete', progress: 100 } : f));
+            toast({
+                title: 'Upload Successful',
+                description: `Successfully uploaded "${fileToUpload.file.name}".`,
+            });
+        } else {
+            throw new Error(result.error || "Upload failed on the server.");
+        }
+    } catch (e: any) {
+        console.error(`Upload failed for ${fileToUpload.file.name}:`, e);
+        setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f));
+        toast({
+            variant: 'destructive',
+            title: `Upload failed for ${fileToUpload.file.name}`,
+            description: e.message || "An unexpected error occurred."
+        });
+        // Re-throw to stop the batch process
+        throw e;
+    }
 };
 
-
-  const handleCancelUpload = (path: string) => {
-    const fileToCancel = uploadableFiles.find(f => f.path === path);
-    if (fileToCancel && fileToCancel.task) {
-      fileToCancel.task.cancel();
-      setUploadableFiles(prev => prev.map(f => f.path === path ? { ...f, status: 'canceled' } : f));
-    }
-  }
 
   async function onSubmit(values: FormValues) {
      const isValid = await trigger();
@@ -259,21 +249,19 @@ export function UploadForm() {
     
     try {
         for (const fileToUpload of initialFiles) {
-            await uploadFile(fileToUpload);
+            await processSingleFile(fileToUpload);
         }
 
         toast({
           title: "All uploads complete",
           description: "All selected files have been processed.",
         });
-    } catch(error: any) {
-        if(error.code !== 'storage/canceled') {
-           toast({
-              variant: 'destructive',
-              title: "An upload failed",
-              description: "One or more files failed to upload. Please check the list and try again.",
-           });
-        }
+    } catch(error) {
+       toast({
+          variant: 'destructive',
+          title: "An upload failed",
+          description: "One or more files failed to upload. Please check the list and try again.",
+       });
     } finally {
         // Clear form fields for files
         ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
@@ -543,24 +531,16 @@ export function UploadForm() {
                   <div key={f.path} className="w-full">
                       <div className="flex items-center gap-2 text-sm">
                         {f.status === 'uploading' && <Loader2 className="w-4 h-4 animate-spin"/>}
-                        {f.status === 'summarizing' && <Bot className="w-4 h-4 animate-spin text-primary"/>}
                         {f.status === 'complete' && <CheckCircle2 className="w-4 h-4 text-green-500"/>}
                         {f.status === 'canceled' && <XCircle className="w-4 h-4 text-gray-500"/>}
                         {f.status === 'error' && <XCircle className="w-4 h-4 text-destructive"/>}
                         {f.status === 'pending' && <FileIcon className="w-4 h-4 text-muted-foreground"/>}
                         <span className="truncate flex-1">{f.file.name}</span>
-                        {f.status === 'uploading' && <span className="text-muted-foreground">{Math.round(f.progress)}%</span>}
-                        {f.status === 'summarizing' && <span className="text-xs text-primary">Summarizing...</span>}
+                        {f.status === 'uploading' && <span className="text-muted-foreground">Uploading...</span>}
                         {f.status === 'canceled' && <span className="text-xs text-gray-500">Canceled</span>}
                         {f.status === 'error' && <span className="text-xs text-destructive">Error</span>}
-
-                        {f.status === 'uploading' && (
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCancelUpload(f.path)}>
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        )}
                       </div>
-                      {(f.status === 'uploading' || f.status === 'summarizing') && <Progress value={f.progress} className="h-2 mt-1" />}
+                      {(f.status === 'uploading') && <Progress value={f.progress} className="h-2 mt-1" />}
                   </div>
                 ))}
                </div>

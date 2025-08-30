@@ -4,7 +4,7 @@
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { summarizeResource } from '@/ai/flows/resource-summarization';
 import { getFileAsBuffer, updateFileSummary } from './firebase';
-import type pdf from 'pdf-parse';
+import { uploadFile as uploadFileFlow, UploadFileInput } from '@/ai/flows/upload-flow';
 
 const VTU_RESOURCES_TEXT = `
 Visvesvaraya Technological University (VTU) is one of the largest technological universities in India.
@@ -52,13 +52,17 @@ export async function summarizeAndStore(filePath: string): Promise<{ success: bo
     const data = await pdfParser(fileBuffer);
 
     if (!data.text) {
-      return { success: false, error: "Could not extract text from PDF." };
+      // Don't treat this as a hard error for the upload, just skip summarization.
+      console.warn(`Could not extract text from PDF at ${filePath}. Skipping summarization.`);
+      return { success: true };
     }
 
     const { summary } = await summarizeResource({ resourceText: data.text });
     
     if (!summary) {
-       return { success: false, error: "AI failed to generate a summary." };
+       // Also not a hard error.
+       console.warn(`AI failed to generate a summary for ${filePath}.`);
+       return { success: true };
     }
 
     await updateFileSummary(filePath, summary);
@@ -66,7 +70,13 @@ export async function summarizeAndStore(filePath: string): Promise<{ success: bo
     return { success: true };
 
   } catch (error) {
-    console.error("Summarization error:", error);
+    console.error(`Summarization error for ${filePath}:`, error);
+    // We don't propagate the error to the client as the primary action (upload) was successful.
     return { success: false, error: "An unexpected error occurred during summarization." };
   }
+}
+
+
+export async function uploadFile(input: UploadFileInput): Promise<{ success: boolean, error?: string }> {
+    return uploadFileFlow(input);
 }
