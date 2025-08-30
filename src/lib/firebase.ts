@@ -1,6 +1,5 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, FirebaseApp } from "firebase/app";
-import { getAnalytics, isSupported } from "firebase/analytics";
 import { getStorage, ref, listAll, getDownloadURL, getMetadata, updateMetadata, ListResult, StorageReference, getBytes, deleteObject } from "firebase/storage";
 import { Subject, ResourceFile } from "./data";
 
@@ -24,13 +23,6 @@ if (getApps().length === 0) {
         firebaseConfig.appId
       ) {
         firebaseApp = initializeApp(firebaseConfig);
-        if (typeof window !== 'undefined') {
-          isSupported().then(supported => {
-            if (supported) {
-              getAnalytics(firebaseApp);
-            }
-          });
-        }
       } else {
         console.error("Firebase configuration is missing. Please check your .env file.");
       }
