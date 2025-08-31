@@ -97,43 +97,42 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   });
 
   const { watch, resetField, trigger, getValues } = form;
-  const watchedFields = watch();
-  const [debouncedSubjectQuery] = useDebounce(watchedFields.subject, 500);
+  const watchedScheme = watch('scheme');
+  const watchedBranch = watch('branch');
+  const watchedSemester = watch('semester');
+  const watchedSubject = watch('subject');
+
+  const [debouncedSubjectQuery] = useDebounce(watchedSubject, 500);
 
   const fetchSubject = useCallback(async () => {
     const { scheme, branch, semester, subject } = getValues();
 
-    if (scheme && branch && semester && subject) {
-      setIsFetchingSubject(true);
-      try {
-        const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}&subject=${encodeURIComponent(subject)}`);
-        if (response.ok) {
-          const data = await response.json();
-          setExistingSubject(data.length > 0 ? data[0] : null);
-        } else {
-          setExistingSubject(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch subject details", error);
+    if (!scheme || !branch || !semester || !subject) {
+      setExistingSubject(null);
+      return;
+    }
+    
+    setIsFetchingSubject(true);
+    try {
+      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}&subject=${encodeURIComponent(subject)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setExistingSubject(data.length > 0 ? data[0] : null);
+      } else {
         setExistingSubject(null);
-      } finally {
-        setIsFetchingSubject(false);
       }
-    } else {
-      setExistingSubject(null); // Clear if any of the required fields are missing
+    } catch (error) {
+      console.error("Failed to fetch subject details", error);
+      setExistingSubject(null);
+    } finally {
+      setIsFetchingSubject(false);
     }
   }, [getValues]);
 
-  // This effect will run whenever any of the dependency fields change.
+
   useEffect(() => {
-    const { scheme, branch, semester, subject } = watchedFields;
-    // We use the debounced subject query to avoid excessive API calls while typing.
-    if (debouncedSubjectQuery && scheme && branch && semester) {
-        fetchSubject();
-    } else if (!subject) {
-        setExistingSubject(null); // Clear if subject is cleared
-    }
-  }, [debouncedSubjectQuery, watchedFields.scheme, watchedFields.branch, watchedFields.semester, fetchSubject, watchedFields.subject]);
+    fetchSubject();
+  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject]);
 
 
   const selectedYear = form.watch('year');
