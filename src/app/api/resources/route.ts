@@ -69,13 +69,19 @@ export async function GET(request: Request) {
         const dynamicSubject = dynamicSubjectsMap.get(staticSubject.id);
         if (dynamicSubject) {
             // If a dynamic subject with the same ID exists, merge them
+            // CRUCIAL: Dynamic data (from Cloudinary) must overwrite static data.
             const merged: Subject = {
-                ...formattedStaticSubject,
-                id: dynamicSubject.id, // Prioritize dynamic name/id if needed
+                id: dynamicSubject.id,
                 name: dynamicSubject.name,
                 notes: { ...formattedStaticSubject.notes, ...dynamicSubject.notes },
                 questionPapers: [...formattedStaticSubject.questionPapers, ...dynamicSubject.questionPapers],
             };
+            // De-duplicate question papers, prioritizing dynamic ones if names match
+            const qpMap = new Map<string, ResourceFile>();
+            merged.questionPapers.forEach(qp => qpMap.set(qp.name, qp));
+            merged.questionPapers = Array.from(qpMap.values());
+
+
             dynamicSubjectsMap.delete(staticSubject.id); // Remove it from the map so we don't add it again
             return merged;
         }
@@ -86,7 +92,7 @@ export async function GET(request: Request) {
     mergedSubjects.push(...Array.from(dynamicSubjectsMap.values()));
 
 
-    return NextResponse.json(subjectName ? mergedSubjects.filter(s => s.name === subjectName) : mergedSubjects);
+    return NextResponse.json(subjectName ? mergedSubjects.filter(s => s.name.toLowerCase() === subjectName.toLowerCase()) : mergedSubjects);
 
 
   } catch (error) {
