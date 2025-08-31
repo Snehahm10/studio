@@ -108,8 +108,8 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     const { scheme, branch, semester, subject } = getValues();
 
     if (!scheme || !branch || !semester || !subject) {
-      setExistingSubject(null);
-      return;
+        setExistingSubject(null);
+        return;
     }
     
     setIsFetchingSubject(true);
@@ -131,8 +131,13 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
 
   useEffect(() => {
-    fetchSubject();
-  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject]);
+    const { scheme, branch, semester, subject } = getValues();
+    if (scheme && branch && semester && subject) {
+        fetchSubject();
+    } else {
+        setExistingSubject(null);
+    }
+  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject, getValues]);
 
 
   const selectedYear = form.watch('year');
@@ -179,7 +184,6 @@ export function UploadForm({ cloudName }: UploadFormProps) {
         formData.append('file', file);
         formData.append('upload_preset', 'vtu_assistant'); // Create an unsigned upload preset in Cloudinary
         formData.append('public_id', publicId);
-        formData.append('overwrite', 'true'); // Important: allows overwriting existing files
 
         const xhr = new XMLHttpRequest();
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
@@ -368,7 +372,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Branch" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {branches.map((b) => (
@@ -395,7 +399,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {years.map((y) => (
@@ -419,7 +423,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
@@ -456,7 +460,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select resource type" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="notes">Notes</SelectItem>
