@@ -7,13 +7,13 @@ function processCloudinaryResource(resource: any): Subject | null {
     if (!resource.context) return null;
 
     const context = resource.context;
-    const subjectId = context.subject;
+    const subjectName = context.subject;
 
-    if (!subjectId) return null;
+    if (!subjectName) return null;
 
     const subject: Subject = {
-        id: subjectId.replace(/[^a-zA-Z0-9\s-]/g, '').trim(),
-        name: subjectId,
+        id: subjectName,
+        name: subjectName,
         notes: {},
         questionPapers: [],
     };
@@ -40,8 +40,7 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
 
     let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
     if (subjectName) {
-        const sanitizedSubjectName = subjectName.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
-        searchQuery += ` AND context.subject=${JSON.stringify(sanitizedSubjectName)}`;
+        searchQuery += ` AND context.subject=${JSON.stringify(subjectName.trim())}`;
     }
 
     try {
@@ -56,7 +55,7 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
             const parsedSubject = processCloudinaryResource(resource);
             if (!parsedSubject) continue;
 
-            const subjectId = parsedSubject.id;
+            const subjectId = parsedSubject.name.trim();
             const existing = subjectsMap.get(subjectId);
 
             if (existing) {

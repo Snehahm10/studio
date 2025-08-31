@@ -115,7 +115,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
     setIsFetchingSubject(true);
     try {
-      const subjectParam = subject.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+      const subjectParam = subject.trim();
       const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}&subject=${encodeURIComponent(subjectParam)}`);
       if (response.ok) {
         const data = await response.json();
@@ -206,7 +206,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                 const response = JSON.parse(xhr.responseText);
 
                 const metadata: ResourceMetadata = {
-                  scheme, branch, semester, subject: subject.replace(/[^a-zA-Z0-9\s-]/g, '').trim(), resourceType,
+                  scheme, branch, semester, subject: subject.trim(), resourceType,
                   file: {
                     name: file.name,
                     url: response.secure_url,
@@ -262,7 +262,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
      }
     
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
-    const subjectNameForPath = values.subject.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+    const subjectNameForPath = values.subject.trim();
     const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectNameForPath}`;
 
     if (values.resourceType === 'notes') {
@@ -272,14 +272,14 @@ export function UploadForm({ cloudName }: UploadFormProps) {
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const fileName = file.name.replace(/[^a-zA-Z0-9-.]/g, '');
+                   const fileName = file.name;
                    allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}`, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const fileName = file.name.replace(/[^a-zA-Z0-9-.]/g, '');
+            const fileName = file.name;
             allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileName}` });
          });
     }
@@ -605,5 +605,3 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     </Form>
   );
 }
-
-    

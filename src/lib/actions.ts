@@ -4,7 +4,7 @@
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { summarizeResource } from '@/ai/flows/resource-summarization';
 import { getFileAsBuffer } from './firebase';
-import { updateFileSummary, updateFileContext } from './cloudinary';
+import { updateFileContext } from './cloudinary';
 import { ResourceFile } from './data';
 
 const VTU_RESOURCES_TEXT = `
@@ -69,7 +69,7 @@ export async function saveResourceMetadata(metadata: ResourceMetadata) {
 
     // Cloudinary context keys must be lowercase and can only contain letters, numbers, and underscores.
     const sanitizedContext = Object.fromEntries(
-      Object.entries(context).map(([key, value]) => [key.toLowerCase(), String(value)])
+      Object.entries(context).map(([key, value]) => [key.toLowerCase(), String(value).replace(/[^a-zA-Z0-9\s-_]/g, '')])
     );
 
     await updateFileContext(metadata.file.publicId, sanitizedContext);

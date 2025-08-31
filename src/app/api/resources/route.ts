@@ -34,34 +34,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
   
-  // Sanitize the subject name from the query param to match what is stored in Cloudinary context
-  const subjectName = subjectNameParam ? subjectNameParam.replace(/[^a-zA-Z0-9\s-]/g, '').trim() : undefined;
+  const subjectName = subjectNameParam ? subjectNameParam.trim() : undefined;
 
   try {
     const basePath = `resources/${scheme}/${branch}/${semester}`;
     
-    // Fetch dynamic subjects from Cloudinary using the sanitized name
     const dynamicSubjects = await getFilesForSubject(basePath, subjectName);
     
-    // Fetch static subjects unless a specific subject is being requested
     const staticSubjects = subjectName ? [] : getStaticSubjects(scheme, branch, semester);
 
-    // Merge static and dynamic subjects
     const subjectsMap = new Map<string, Subject>();
 
-    // First, add all static subjects to the map
     for (const subject of staticSubjects) {
-        subjectsMap.set(subject.id, subject);
+        subjectsMap.set(subject.name.trim(), subject);
     }
 
-    // Then, merge in dynamic subjects
     for (const subject of dynamicSubjects) {
-        const subjectId = subject.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+        const subjectId = subject.name.trim();
         const existing = subjectsMap.get(subjectId);
         if (existing) {
-            // Merge notes
             Object.assign(existing.notes, subject.notes);
-            // Merge question papers, avoiding duplicates
             const existingQpUrls = new Set(existing.questionPapers.map(qp => qp.url));
             subject.questionPapers.forEach(qp => {
                 if (!existingQpUrls.has(qp.url)) {
@@ -75,9 +67,8 @@ export async function GET(request: Request) {
 
     const allSubjects = Array.from(subjectsMap.values());
 
-    // If a specific subject was requested, filter for it. Otherwise, return all.
     const finalSubjects = subjectName 
-        ? allSubjects.filter(s => s.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim() === subjectName) 
+        ? allSubjects.filter(s => s.name.trim() === subjectName) 
         : allSubjects;
         
     return NextResponse.json(finalSubjects);
