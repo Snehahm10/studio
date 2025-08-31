@@ -48,15 +48,18 @@ const formSchema = z.object({
   module5Files: fileSchema,
 }).refine(data => {
     if (data.resourceType === 'notes') {
-        return data.module1Files?.length || data.module2Files?.length || data.module3Files?.length || data.module4Files?.length || data.module5Files?.length;
+        // Optional: you can keep this if you want at least one file, or remove it to allow none.
+        // For now, let's allow zero uploads.
+        return true;
     }
     if (data.resourceType === 'questionPaper') {
-        return data.questionPaperFile?.length;
+        // Optional: same as above
+        return true;
     }
-    return true; // Should not happen if resourceType is one of the enum values
+    return true;
 }, {
   message: 'Please select at least one file to upload for the chosen resource type.',
-  path: ['resourceType'], // Point error to the most relevant field
+  path: ['resourceType'], // This error message is now effectively disabled.
 });
 
 
@@ -217,7 +220,7 @@ export function UploadForm() {
   async function onSubmit(values: FormValues) {
      const isValid = await trigger();
      if (!isValid) {
-        toast({ variant: 'destructive', title: 'Validation Error', description: 'Please fill all required fields and select at least one file.' });
+        toast({ variant: 'destructive', title: 'Validation Error', description: 'Please fill all required fields.' });
         return;
      }
     
@@ -244,7 +247,7 @@ export function UploadForm() {
     }
 
     if (allFilesToProcess.length === 0) {
-        toast({ variant: 'destructive', title: 'No files selected', description: 'Please select at least one file to upload.' });
+        toast({ title: 'No files selected', description: 'No new files were selected for upload.' });
         return;
     }
     

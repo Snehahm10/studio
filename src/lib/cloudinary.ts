@@ -1,14 +1,7 @@
 
 'use server';
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary } from './cloudinary-server';
 import { Subject, ResourceFile } from './data';
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
 
 async function processCloudinaryResource(resource: any): Promise<[string, string, ResourceFile] | null> {
     const pathParts = resource.public_id.split('/');
