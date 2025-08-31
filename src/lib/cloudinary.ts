@@ -3,53 +3,68 @@
 import { cloudinary } from './cloudinary-server';
 import { Subject, ResourceFile } from './data';
 
-async function processCloudinaryResource(resource: any): Promise<[string, string, ResourceFile] | null> {
-    const pathParts = resource.public_id.split('/');
-    if (pathParts.length < 6) return null; // e.g., resources/scheme/branch/sem/subject/type/file
+function processCloudinaryResource(resource: any): Subject | null {
+    if (!resource.context) return null;
 
-    const subjectName = pathParts[4];
-    const resourceType = pathParts[5];
-    const fileName = pathParts.slice(6).join('/');
+    const context = resource.context;
+    const subjectId = context.subject;
+
+    if (!subjectId) return null;
+
+    const subject: Subject = {
+        id: subjectId,
+        name: subjectId,
+        notes: {},
+        questionPapers: [],
+    };
 
     const fileData: ResourceFile = {
-        name: fileName,
+        name: context.name,
         url: resource.secure_url,
-        summary: resource.context?.custom?.summary,
+        summary: context.summary || '',
     };
     
-    return [subjectName, resourceType, fileData];
+    if (context.resourcetype === 'notes' && context.module) {
+        subject.notes[context.module] = fileData;
+    } else if (context.resourcetype === 'questionPaper') {
+        subject.questionPapers.push(fileData);
+    }
+    
+    return subject;
 }
 
+
 export async function getFilesForSubject(basePath: string, subjectName?: string): Promise<Subject[]> {
-    const expression = `folder=${basePath}${subjectName ? `/${subjectName}` : ''}*`;
+    const contextQueryParts = basePath.split('/').slice(1);
+    const [scheme, branch, semester] = contextQueryParts;
+
+    let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
+    if (subjectName) {
+        searchQuery += ` AND context.subject=${subjectName}`;
+    }
 
     try {
-        const results = await cloudinary.search.expression(expression).with_field('context').execute();
+        const results = await cloudinary.search
+            .expression(searchQuery)
+            .with_field('context')
+            .execute();
         
         const subjectsMap = new Map<string, Subject>();
 
         for (const resource of results.resources) {
-            const processed = await processCloudinaryResource(resource);
-            if (!processed) continue;
+            const parsedSubject = processCloudinaryResource(resource);
+            if (!parsedSubject) continue;
 
-            const [currentSubjectName, resourceType, fileData] = processed;
+            const subjectId = parsedSubject.id;
+            const existing = subjectsMap.get(subjectId);
 
-            if (!subjectsMap.has(currentSubjectName)) {
-                subjectsMap.set(currentSubjectName, {
-                    id: currentSubjectName,
-                    name: currentSubjectName,
-                    notes: {},
-                    questionPapers: [],
-                });
-            }
-
-            const subject = subjectsMap.get(currentSubjectName)!;
-
-            if (resourceType === 'notes') {
-                const moduleName = resource.public_id.split('/')[6];
-                subject.notes[moduleName] = fileData;
-            } else if (resourceType === 'questionPapers') {
-                subject.questionPapers.push(fileData);
+            if (existing) {
+                // Merge notes
+                Object.assign(existing.notes, parsedSubject.notes);
+                // Merge QPs
+                existing.questionPapers.push(...parsedSubject.questionPapers);
+            } else {
+                subjectsMap.set(subjectId, parsedSubject);
             }
         }
         return Array.from(subjectsMap.values());
@@ -63,10 +78,15 @@ export async function deleteFileByPath(publicId: string): Promise<void> {
     try {
         await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
     } catch(error) {
-         await cloudinary.uploader.destroy(publicId);
+         console.error('Failed to delete file:', error);
+         throw error;
     }
 }
 
+export async function updateFileContext(publicId: string, context: Record<string, string>): Promise<void> {
+    await cloudinary.uploader.add_context(context, [publicId], { resource_type: 'raw' });
+}
+
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {
-    await cloudinary.uploader.add_context('summary', summary, [publicId]);
+    await updateFileContext(publicId, { summary });
 }

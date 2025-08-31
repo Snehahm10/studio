@@ -28,6 +28,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { deleteFileByPath } from '@/lib/cloudinary';
 import { useDebounce } from 'use-debounce';
+import { ResourceMetadata, saveResourceMetadata } from '@/lib/actions';
 
 const fileSchema = z.custom<File[]>(files => Array.isArray(files) && files.every(file => file instanceof File), "Please upload valid files.").optional();
 
@@ -47,18 +48,15 @@ const formSchema = z.object({
   module5Files: fileSchema,
 }).refine(data => {
     if (data.resourceType === 'notes') {
-        // Optional: you can keep this if you want at least one file, or remove it to allow none.
-        // For now, let's allow zero uploads.
         return true;
     }
     if (data.resourceType === 'questionPaper') {
-        // Optional: same as above
         return true;
     }
     return true;
 }, {
   message: 'Please select at least one file to upload for the chosen resource type.',
-  path: ['resourceType'], // This error message is now effectively disabled.
+  path: ['resourceType'], 
 });
 
 
@@ -69,6 +67,7 @@ type UploadableFile = {
   path: string; // This will be the Cloudinary public_id
   progress: number;
   status: 'pending' | 'uploading' | 'complete' | 'error' | 'canceled';
+  module?: string;
 }
 
 type UploadFormProps = {
@@ -132,7 +131,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
 
   useEffect(() => {
-    if (watchedScheme && watchedBranch && watchedSemester && debouncedSubjectQuery) {
+    if (debouncedSubjectQuery && watchedScheme && watchedBranch && watchedSemester) {
         fetchSubject();
     } else {
         setExistingSubject(null);
@@ -179,8 +178,9 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     }
   };
 
-  const processSingleFile = (file: File, publicId: string): Promise<string> => {
+  const processSingleFile = (file: File, publicId: string, moduleName?: string): Promise<string> => {
     return new Promise((resolve, reject) => {
+        const { scheme, branch, semester, subject, resourceType } = getValues();
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', 'vtu_assistant');
@@ -199,9 +199,24 @@ export function UploadForm({ cloudName }: UploadFormProps) {
             }
         };
 
-        xhr.onload = () => {
+        xhr.onload = async () => {
             if (xhr.status === 200) {
                 const response = JSON.parse(xhr.responseText);
+
+                const metadata: ResourceMetadata = {
+                  scheme, branch, semester, subject, resourceType,
+                  file: {
+                    name: file.name,
+                    url: response.secure_url,
+                    publicId: response.public_id,
+                  }
+                };
+                if (moduleName) {
+                    metadata.module = moduleName;
+                }
+
+                await saveResourceMetadata(metadata);
+                
                 setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'complete', progress: 100 } : f));
                 toast({
                     title: 'Upload Successful',
@@ -244,8 +259,9 @@ export function UploadForm({ cloudName }: UploadFormProps) {
         return;
      }
     
-    const allFilesToProcess: { file: File, publicId: string }[] = [];
-    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
+    const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
+    const subjectNameForPath = values.subject.replace(/[^a-zA-Z0-9]/g, '');
+    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectNameForPath}`;
 
     if (values.resourceType === 'notes') {
         const moduleFields: (keyof FormValues)[] = ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files'];
@@ -254,14 +270,14 @@ export function UploadForm({ cloudName }: UploadFormProps) {
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const fileName = file.name.substring(0, file.name.lastIndexOf('.'));
-                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}` });
+                   const fileName = file.name.substring(0, file.name.lastIndexOf('.')).replace(/[^a-zA-Z0-9]/g, '');
+                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}`, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const fileName = file.name.substring(0, file.name.lastIndexOf('.'));
+            const fileName = file.name.substring(0, file.name.lastIndexOf('.')).replace(/[^a-zA-Z0-9]/g, '');
             allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileName}` });
          });
     }
@@ -273,18 +289,18 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     
     setIsSubmitting(true);
     
-    const initialFiles: UploadableFile[] = allFilesToProcess.map(f => ({ file: f.file, path: f.publicId, progress: 0, status: 'pending' }));
+    const initialFiles: UploadableFile[] = allFilesToProcess.map(f => ({ file: f.file, path: f.publicId, progress: 0, status: 'pending', module: f.moduleName }));
     setUploadableFiles(initialFiles);
     
     try {
-        const uploadPromises = allFilesToProcess.map(f => processSingleFile(f.file, f.publicId));
+        const uploadPromises = allFilesToProcess.map(f => processSingleFile(f.file, f.publicId, f.moduleName));
         await Promise.all(uploadPromises);
 
         toast({
           title: "All uploads complete",
           description: "All selected files have been processed.",
         });
-        await fetchSubject(); // Refresh subject details to show newly uploaded files
+        await fetchSubject(); 
     } catch(error) {
        toast({
           variant: 'destructive',
@@ -292,10 +308,8 @@ export function UploadForm({ cloudName }: UploadFormProps) {
           description: "One or more files failed to upload. Please check the list and try again.",
        });
     } finally {
-        // Clear form fields for files
         ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
         setIsSubmitting(false);
-        // Clear progress indicators after a delay
         setTimeout(() => setUploadableFiles([]), 5000);
     }
   }
@@ -308,12 +322,12 @@ export function UploadForm({ cloudName }: UploadFormProps) {
       <div className="space-y-2">
         {fileList.map((file) => {
           if (!file || !file.url) return null;
+          
+          // publicId is not consistently available on the file object from the existing API structure, so derive it.
           const urlParts = file.url.split('/upload/');
           if (urlParts.length < 2) return null;
-
           const publicIdWithVersion = urlParts[1];
-          const publicId = publicIdWithVersion.split('/').slice(1).join('/').replace(/\.[^/.]+$/, '');
-
+          const publicId = publicIdWithVersion.split('/').slice(1).join('/');
 
           if (!publicId) return null;
           

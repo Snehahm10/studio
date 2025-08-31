@@ -4,7 +4,8 @@
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { summarizeResource } from '@/ai/flows/resource-summarization';
 import { getFileAsBuffer } from './firebase';
-import { updateFileSummary } from './cloudinary';
+import { updateFileSummary, updateFileContext } from './cloudinary';
+import { ResourceFile } from './data';
 
 const VTU_RESOURCES_TEXT = `
 Visvesvaraya Technological University (VTU) is one of the largest technological universities in India.
@@ -43,6 +44,43 @@ export async function getChatbotResponse(
     return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
+
+export type ResourceMetadata = {
+  scheme: string;
+  branch: string;
+  semester: string;
+  subject: string;
+  resourceType: 'notes' | 'questionPaper';
+  module?: string;
+  file: Omit<ResourceFile, 'summary'> & { publicId: string };
+};
+
+export async function saveResourceMetadata(metadata: ResourceMetadata) {
+  try {
+    const context = {
+      scheme: metadata.scheme,
+      branch: metadata.branch,
+      semester: metadata.semester,
+      subject: metadata.subject,
+      resourceType: metadata.resourceType,
+      module: metadata.module || '',
+      name: metadata.file.name,
+    };
+
+    // Cloudinary context keys must be lowercase and can only contain letters, numbers, and underscores.
+    const sanitizedContext = Object.fromEntries(
+      Object.entries(context).map(([key, value]) => [key.toLowerCase(), String(value)])
+    );
+
+    await updateFileContext(metadata.file.publicId, sanitizedContext);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save resource metadata:', error);
+    return { success: false, error: 'Failed to save metadata.' };
+  }
+}
+
 
 export async function summarizeAndStore(publicId: string): Promise<{ success: boolean, error?: string }> {
   // This feature is temporarily disabled.
