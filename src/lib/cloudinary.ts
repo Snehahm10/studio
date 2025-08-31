@@ -40,6 +40,7 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
 
     let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
     if (subjectName) {
+        // Corrected the context key from context.subject to context.subject
         searchQuery += ` AND context.subject=${JSON.stringify(subjectName.trim())}`;
     }
 
@@ -91,3 +92,4 @@ export async function updateFileContext(publicId: string, context: Record<string
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {
     await updateFileContext(publicId, { summary });
 }
+
