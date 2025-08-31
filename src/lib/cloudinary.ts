@@ -12,7 +12,7 @@ function processCloudinaryResource(resource: any): Subject | null {
     if (!subjectId) return null;
 
     const subject: Subject = {
-        id: subjectId,
+        id: subjectId.replace(/[^a-zA-Z0-9\s-]/g, '').trim(),
         name: subjectId,
         notes: {},
         questionPapers: [],
@@ -40,7 +40,8 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
 
     let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
     if (subjectName) {
-        searchQuery += ` AND context.subject=${subjectName.replace(/[^a-zA-Z0-9]/g, '')}`;
+        const sanitizedSubjectName = subjectName.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+        searchQuery += ` AND context.subject=${JSON.stringify(sanitizedSubjectName)}`;
     }
 
     try {
@@ -55,7 +56,7 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
             const parsedSubject = processCloudinaryResource(resource);
             if (!parsedSubject) continue;
 
-            const subjectId = parsedSubject.id.replace(/[^a-zA-Z0-9]/g, '');
+            const subjectId = parsedSubject.id;
             const existing = subjectsMap.get(subjectId);
 
             if (existing) {
@@ -84,7 +85,8 @@ export async function deleteFileByPath(publicId: string): Promise<void> {
 }
 
 export async function updateFileContext(publicId: string, context: Record<string, string>): Promise<void> {
-    await cloudinary.uploader.add_context(Object.entries(context).map(([key, value]) => `${key}=${value}`).join('|'), [publicId], { resource_type: 'raw' });
+    const contextString = Object.entries(context).map(([key, value]) => `${key}=${value}`).join('|');
+    await cloudinary.uploader.add_context(contextString, [publicId], { resource_type: 'raw' });
 }
 
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {

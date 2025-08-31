@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   }
   
   // Sanitize the subject name from the query param to match what is stored in Cloudinary context
-  const subjectName = subjectNameParam ? subjectNameParam.replace(/[^a-zA-Z0-9]/g, '') : undefined;
+  const subjectName = subjectNameParam ? subjectNameParam.replace(/[^a-zA-Z0-9\s-]/g, '').trim() : undefined;
 
   try {
     const basePath = `resources/${scheme}/${branch}/${semester}`;
@@ -56,7 +56,8 @@ export async function GET(request: Request) {
 
     // Then, merge in dynamic subjects
     for (const subject of dynamicSubjects) {
-        const existing = subjectsMap.get(subject.id);
+        const subjectId = subject.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+        const existing = subjectsMap.get(subjectId);
         if (existing) {
             // Merge notes
             Object.assign(existing.notes, subject.notes);
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
                 }
             });
         } else {
-            subjectsMap.set(subject.id, subject);
+            subjectsMap.set(subjectId, subject);
         }
     }
 
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
 
     // If a specific subject was requested, filter for it. Otherwise, return all.
     const finalSubjects = subjectName 
-        ? allSubjects.filter(s => s.name.replace(/[^a-zA-Z0-9]/g, '') === subjectName) 
+        ? allSubjects.filter(s => s.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim() === subjectName) 
         : allSubjects;
         
     return NextResponse.json(finalSubjects);
