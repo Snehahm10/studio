@@ -99,6 +99,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   const { watch, resetField, trigger, getValues } = form;
   const watchedScheme = watch('scheme');
   const watchedBranch = watch('branch');
+  const watchedYear = watch('year');
   const watchedSemester = watch('semester');
   const watchedSubject = watch('subject');
 
