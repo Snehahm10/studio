@@ -76,8 +76,8 @@ export function ResourceDialog({ isOpen, onOpenChange, subject }: ResourceDialog
                   <h4 className="font-semibold mb-2 flex items-center"><FileText className="mr-2 h-4 w-4"/>Question Papers</h4>
                   <Separator />
                   <div className="grid grid-cols-1 gap-2 mt-2">
-                      {subject.questionPapers.map((qp) => (
-                        <ResourceItem key={qp.url} resource={qp} />
+                      {subject.questionPapers.map((qp, index) => (
+                        <ResourceItem key={`${qp.url}-${index}`} resource={qp} />
                       ))}
                   </div>
               </div>
