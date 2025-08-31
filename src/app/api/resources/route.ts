@@ -1,7 +1,28 @@
+
 import { NextResponse } from 'next/server';
-import { Subject } from '@/lib/data';
+import { Subject, ResourceFile } from '@/lib/data';
 import { getFilesForSubject } from '@/lib/firebase';
 import { vtuResources } from '@/lib/vtu-data';
+
+// Helper to convert static data links into the ResourceFile format
+function convertStaticNotes(staticNotes: { [module: string]: string }): { [module: string]: ResourceFile } {
+    const converted: { [module: string]: ResourceFile } = {};
+    for (const key in staticNotes) {
+        converted[key] = { name: `Module ${key.replace('module', '')} Notes`, url: staticNotes[key] };
+    }
+    return converted;
+}
+
+function convertStaticQPs(staticQPs: { current: string; previous: string }): ResourceFile[] {
+    const converted: ResourceFile[] = [];
+    if (staticQPs.current) {
+        converted.push({ name: 'Current Question Paper', url: staticQPs.current });
+    }
+    if (staticQPs.previous) {
+        converted.push({ name: 'Previous Question Paper', url: staticQPs.previous });
+    }
+    return converted;
+}
 
 
 export async function GET(request: Request) {
@@ -38,19 +59,27 @@ export async function GET(request: Request) {
 
     // Merge static and dynamic data
     const mergedSubjects: Subject[] = staticSubjects.map(staticSubject => {
+        // Convert static subject resources to the correct format first
+        const formattedStaticSubject: Subject = {
+            ...staticSubject,
+            notes: staticSubject.notes ? convertStaticNotes(staticSubject.notes) : {},
+            questionPapers: staticSubject.questionPapers ? convertStaticQPs(staticSubject.questionPapers) : [],
+        };
+
         const dynamicSubject = dynamicSubjectsMap.get(staticSubject.id);
         if (dynamicSubject) {
             // If a dynamic subject with the same ID exists, merge them
-            // We prioritize dynamic data (actual uploaded files) over static links
-            const merged = {
-                ...staticSubject,
-                ...dynamicSubject,
-                // You might need more specific merging logic here if there are conflicts
+            const merged: Subject = {
+                ...formattedStaticSubject,
+                id: dynamicSubject.id, // Prioritize dynamic name/id if needed
+                name: dynamicSubject.name,
+                notes: { ...formattedStaticSubject.notes, ...dynamicSubject.notes },
+                questionPapers: [...formattedStaticSubject.questionPapers, ...dynamicSubject.questionPapers],
             };
             dynamicSubjectsMap.delete(staticSubject.id); // Remove it from the map so we don't add it again
             return merged;
         }
-        return staticSubject; // No dynamic counterpart, use static
+        return formattedStaticSubject; // No dynamic counterpart, use formatted static
     });
 
     // Add any remaining dynamic subjects that didn't have a static counterpart
