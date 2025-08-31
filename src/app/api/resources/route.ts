@@ -39,50 +39,9 @@ export async function GET(request: Request) {
     
     // Fetch dynamic subjects from Cloudinary first
     const dynamicSubjects = await getFilesForSubject(path, subjectName || undefined);
-    const allSubjectsMap = new Map(dynamicSubjects.map(s => [s.id.toLowerCase(), s]));
-
-    if (subjectName) {
-        // If a specific subject is requested, we rely primarily on Cloudinary.
-        // If Cloudinary returns nothing, check static data as a fallback.
-        if (allSubjectsMap.size > 0) {
-            return NextResponse.json(Array.from(allSubjectsMap.values()));
-        }
-        const staticSubjects = getStaticSubjects(scheme, branch, semester);
-        const filteredStatic = staticSubjects.filter(s => s.id.toLowerCase() === subjectName.toLowerCase());
-        return NextResponse.json(filteredStatic);
-    }
     
-    // For a general query, merge static and dynamic data
-    const staticSubjects = getStaticSubjects(scheme, branch, semester);
-
-    staticSubjects.forEach(staticSubject => {
-        const subjectId = staticSubject.id.toLowerCase();
-        const dynamicSubject = allSubjectsMap.get(subjectId);
-
-        if (dynamicSubject) {
-            // Merge notes from static if not present in dynamic
-            for(const moduleKey in staticSubject.notes) {
-                if (!dynamicSubject.notes[moduleKey] && staticSubject.notes[moduleKey].url !== '#') {
-                    dynamicSubject.notes[moduleKey] = staticSubject.notes[moduleKey];
-                }
-            }
-
-            // Merge question papers from static if not present in dynamic
-            const dynamicQpUrls = new Set(dynamicSubject.questionPapers.map(qp => qp.url));
-            staticSubject.questionPapers.forEach(staticQp => {
-                if (!dynamicQpUrls.has(staticQp.url) && staticQp.url !== '#') {
-                    dynamicSubject.questionPapers.push(staticQp);
-                }
-            });
-        } else {
-            // Static subject doesn't exist in dynamic, so add it
-            allSubjectsMap.set(subjectId, staticSubject);
-        }
-    });
-
-    const combinedSubjects = Array.from(allSubjectsMap.values());
-    
-    return NextResponse.json(combinedSubjects);
+    // For now, we only return dynamic subjects. Static data can be merged if needed.
+    return NextResponse.json(dynamicSubjects);
 
   } catch (error) {
     console.error('Failed to retrieve resources:', error);

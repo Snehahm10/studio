@@ -62,7 +62,7 @@ export async function saveResourceMetadata(metadata: ResourceMetadata) {
       branch: metadata.branch,
       semester: metadata.semester,
       subject: metadata.subject,
-      resourceType: metadata.resourceType,
+      resourcetype: metadata.resourceType,
       module: metadata.module || '',
       name: metadata.file.name,
     };
