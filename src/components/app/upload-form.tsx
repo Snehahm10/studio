@@ -103,7 +103,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   const watchedSubject = watch('subject');
 
   const [debouncedSubjectQuery] = useDebounce(watchedSubject, 500);
-
+  
   const fetchSubject = useCallback(async () => {
     const { scheme, branch, semester, subject } = getValues();
 
@@ -131,13 +131,12 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
 
   useEffect(() => {
-    const { scheme, branch, semester, subject } = getValues();
-    if (scheme && branch && semester && subject) {
+    if (watchedScheme && watchedBranch && watchedSemester && debouncedSubjectQuery) {
         fetchSubject();
     } else {
         setExistingSubject(null);
     }
-  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject, getValues]);
+  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject]);
 
 
   const selectedYear = form.watch('year');
