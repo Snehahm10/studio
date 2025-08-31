@@ -186,7 +186,8 @@ export function UploadForm({ cloudName }: UploadFormProps) {
         formData.append('public_id', publicId);
 
         const xhr = new XMLHttpRequest();
-        const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
+        // Use the 'raw' upload endpoint for non-image files like PDFs
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
         xhr.open('POST', url, true);
 
 
