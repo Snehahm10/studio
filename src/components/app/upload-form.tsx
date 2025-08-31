@@ -126,12 +126,14 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
   // This effect will run whenever any of the dependency fields change.
   useEffect(() => {
-    const { scheme, branch, semester } = watchedFields;
+    const { scheme, branch, semester, subject } = watchedFields;
     // We use the debounced subject query to avoid excessive API calls while typing.
     if (debouncedSubjectQuery && scheme && branch && semester) {
         fetchSubject();
+    } else if (!subject) {
+        setExistingSubject(null); // Clear if subject is cleared
     }
-  }, [debouncedSubjectQuery, watchedFields.scheme, watchedFields.branch, watchedFields.semester, fetchSubject]);
+  }, [debouncedSubjectQuery, watchedFields.scheme, watchedFields.branch, watchedFields.semester, fetchSubject, watchedFields.subject]);
 
 
   const selectedYear = form.watch('year');
@@ -277,6 +279,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
           title: "All uploads complete",
           description: "All selected files have been processed.",
         });
+        await fetchSubject(); // Refresh subject details to show newly uploaded files
     } catch(error) {
        toast({
           variant: 'destructive',
@@ -286,7 +289,6 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     } finally {
         // Clear form fields for files
         ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'].forEach(field => resetField(field as keyof FormValues));
-        await fetchSubject(); // Refresh subject details to show newly uploaded files
         setIsSubmitting(false);
         // Clear progress indicators after a delay
         setTimeout(() => setUploadableFiles([]), 5000);
@@ -302,7 +304,10 @@ export function UploadForm({ cloudName }: UploadFormProps) {
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           // Cloudinary public_id is derived from the URL, assuming standard Cloudinary structure
-          const publicId = file.url.split('/upload/').pop()?.split('/').slice(1).join('/').replace(/\.[^/.]+$/, '');
+          const publicIdWithVersion = file.url.split('/upload/').pop();
+          if (!publicIdWithVersion) return null;
+          const publicId = publicIdWithVersion.split('/').slice(1).join('/').replace(/\.[^/.]+$/, '');
+
 
           if (!publicId) return null;
           
@@ -415,7 +420,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
