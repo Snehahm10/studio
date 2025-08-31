@@ -28,17 +28,20 @@ export async function GET(request: Request) {
   const scheme = searchParams.get('scheme');
   const branch = searchParams.get('branch');
   const semester = searchParams.get('semester');
-  const subjectName = searchParams.get('subject');
+  const subjectNameParam = searchParams.get('subject');
 
   if (!scheme || !branch || !semester) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
+  
+  // Sanitize the subject name from the query param to match what is stored in Cloudinary context
+  const subjectName = subjectNameParam ? subjectNameParam.replace(/[^a-zA-Z0-9]/g, '') : undefined;
 
   try {
     const basePath = `resources/${scheme}/${branch}/${semester}`;
     
-    // Fetch dynamic subjects from Cloudinary
-    const dynamicSubjects = await getFilesForSubject(basePath, subjectName || undefined);
+    // Fetch dynamic subjects from Cloudinary using the sanitized name
+    const dynamicSubjects = await getFilesForSubject(basePath, subjectName);
     
     // Fetch static subjects unless a specific subject is being requested
     const staticSubjects = subjectName ? [] : getStaticSubjects(scheme, branch, semester);
@@ -73,7 +76,7 @@ export async function GET(request: Request) {
 
     // If a specific subject was requested, filter for it. Otherwise, return all.
     const finalSubjects = subjectName 
-        ? allSubjects.filter(s => s.name.replace(/[^a-zA-Z0-9]/g, '') === subjectName.replace(/[^a-zA-Z0-9]/g, '')) 
+        ? allSubjects.filter(s => s.name.replace(/[^a-zA-Z0-9]/g, '') === subjectName) 
         : allSubjects;
         
     return NextResponse.json(finalSubjects);
