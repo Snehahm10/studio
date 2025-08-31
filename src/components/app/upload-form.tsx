@@ -96,15 +96,18 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     },
   });
 
-  const { watch, resetField, trigger } = form;
+  const { watch, resetField, trigger, getValues } = form;
   const watchedFields = watch();
   const [debouncedSubjectQuery] = useDebounce(watchedFields.subject, 500);
 
   const fetchSubject = useCallback(async () => {
-    if (watchedFields.scheme && watchedFields.branch && watchedFields.semester && debouncedSubjectQuery) {
+    const currentValues = getValues();
+    const subjectQuery = currentValues.subject;
+
+    if (currentValues.scheme && currentValues.branch && currentValues.semester && subjectQuery) {
       setIsFetchingSubject(true);
       try {
-        const response = await fetch(`/api/resources?scheme=${watchedFields.scheme}&branch=${watchedFields.branch}&semester=${watchedFields.semester}&subject=${encodeURIComponent(debouncedSubjectQuery)}`);
+        const response = await fetch(`/api/resources?scheme=${currentValues.scheme}&branch=${currentValues.branch}&semester=${currentValues.semester}&subject=${encodeURIComponent(subjectQuery)}`);
         if(response.ok) {
           const data = await response.json();
           setExistingSubject(data.length > 0 ? data[0] : null);
@@ -120,11 +123,13 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     } else {
       setExistingSubject(null);
     }
-  }, [watchedFields.scheme, watchedFields.branch, watchedFields.semester, debouncedSubjectQuery]);
+  }, [getValues]);
 
   useEffect(() => {
-    fetchSubject();
-  }, [fetchSubject]);
+    if (debouncedSubjectQuery) {
+        fetchSubject();
+    }
+  }, [debouncedSubjectQuery, watchedFields.scheme, watchedFields.branch, watchedFields.semester, fetchSubject]);
 
 
   const selectedYear = form.watch('year');
