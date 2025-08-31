@@ -3,7 +3,8 @@
 
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { summarizeResource } from '@/ai/flows/resource-summarization';
-import { getFileAsBuffer, updateFileSummary } from './firebase';
+import { getFileAsBuffer } from './firebase';
+import { updateFileSummary } from './cloudinary';
 
 const VTU_RESOURCES_TEXT = `
 Visvesvaraya Technological University (VTU) is one of the largest technological universities in India.
@@ -16,7 +17,7 @@ Each scheme defines the subjects, credits, and examination patterns for all bran
 
 Branches of Engineering:
 Popular branches include Computer Science (CSE), Information Science (ISE), Electronics and Communication (ECE), Mechanical (ME), and Civil (CV).
-Each branch has a detailed syllabus for each semester under a specific scheme.
+Each branch has a detailed syllabus for each branch for each semester under a specific scheme.
 
 Examinations:
 VTU conducts examinations at the end of each semester.
@@ -43,7 +44,7 @@ export async function getChatbotResponse(
   }
 }
 
-export async function summarizeAndStore(filePath: string): Promise<{ success: boolean, error?: string }> {
+export async function summarizeAndStore(publicId: string): Promise<{ success: boolean, error?: string }> {
   // This feature is temporarily disabled.
   return { success: true };
 }

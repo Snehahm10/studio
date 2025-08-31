@@ -27,8 +27,7 @@ import { schemes, branches, years, semesters as allSemesters, cycles, Subject, R
 import { Loader2, Upload, File as FileIcon, CheckCircle2, Trash2, XCircle } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { firebaseApp, deleteFileByPath } from '@/lib/firebase';
-import { getStorage, ref, uploadBytesResumable, UploadTaskSnapshot } from "firebase/storage";
+import { deleteFileByPath } from '@/lib/cloudinary';
 import { useDebounce } from 'use-debounce';
 
 const fileSchema = z.custom<File[]>(files => Array.isArray(files) && files.every(file => file instanceof File), "Please upload valid files.").optional();
@@ -65,7 +64,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 type UploadableFile = {
   file: File;
-  path: string;
+  path: string; // This will be the Cloudinary public_id
   progress: number;
   status: 'pending' | 'uploading' | 'complete' | 'error' | 'canceled';
 }
@@ -143,13 +142,13 @@ export function UploadForm() {
   
   const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
   
-  const handleDelete = async (filePath: string) => {
+  const handleDelete = async (publicId: string) => {
     if (!window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
       return;
     }
-    setIsDeleting(filePath);
+    setIsDeleting(publicId);
     try {
-      await deleteFileByPath(filePath);
+      await deleteFileByPath(publicId);
       toast({ title: 'File Deleted', description: 'The file has been successfully deleted.' });
       fetchSubject(); // Refresh the file list
     } catch (error) {
@@ -160,38 +159,59 @@ export function UploadForm() {
     }
   };
 
-  const processSingleFile = (fileToUpload: UploadableFile): Promise<string> => {
+  const processSingleFile = (file: File, publicId: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-        const storage = getStorage(firebaseApp);
-        const storageRef = ref(storage, fileToUpload.path);
-        const uploadTask = uploadBytesResumable(storageRef, fileToUpload.file);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'vtu_assistant'); // Create an unsigned upload preset in Cloudinary
+        formData.append('public_id', publicId);
 
-        uploadTask.on('state_changed',
-            (snapshot: UploadTaskSnapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'uploading', progress } : f));
-            },
-            (error) => {
-                console.error(`Upload failed for ${fileToUpload.file.name}:`, error);
-                setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'error' } : f));
-                toast({
-                    variant: 'destructive',
-                    title: `Upload failed for ${fileToUpload.file.name}`,
-                    description: error.message
-                });
-                reject(error);
-            },
-            async () => {
-                setUploadableFiles(prev => prev.map(f => f.path === fileToUpload.path ? { ...f, status: 'complete', progress: 100 } : f));
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`, true);
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const progress = (event.loaded / event.total) * 100;
+                setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'uploading', progress } : f));
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'complete', progress: 100 } : f));
                 toast({
                     title: 'Upload Successful',
-                    description: `Successfully uploaded "${fileToUpload.file.name}".`,
+                    description: `Successfully uploaded "${file.name}".`,
                 });
-                resolve(fileToUpload.path);
+                resolve(response.public_id);
+            } else {
+                const error = JSON.parse(xhr.responseText);
+                console.error(`Upload failed for ${file.name}:`, error.error.message);
+                setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'error' } : f));
+                toast({
+                    variant: 'destructive',
+                    title: `Upload failed for ${file.name}`,
+                    description: error.error.message
+                });
+                reject(new Error(error.error.message));
             }
-        );
+        };
+
+        xhr.onerror = () => {
+            console.error('Network error during upload');
+             setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'error' } : f));
+             toast({
+                variant: 'destructive',
+                title: `Upload failed for ${file.name}`,
+                description: 'Network error occurred.'
+             });
+            reject(new Error('Network error'));
+        };
+
+        xhr.send(formData);
     });
-  };
+};
 
 
   async function onSubmit(values: FormValues) {
@@ -201,7 +221,7 @@ export function UploadForm() {
         return;
      }
     
-    const allFilesToProcess: { file: File, path: string }[] = [];
+    const allFilesToProcess: { file: File, publicId: string }[] = [];
     const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${values.subject}`;
 
     if (values.resourceType === 'notes') {
@@ -211,13 +231,15 @@ export function UploadForm() {
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   allFilesToProcess.push({ file, path: `${basePath}/notes/${moduleName}/${file.name}` });
+                   const fileName = file.name.substring(0, file.name.lastIndexOf('.'));
+                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}` });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            allFilesToProcess.push({ file, path: `${basePath}/questionPapers/${file.name}` });
+            const fileName = file.name.substring(0, file.name.lastIndexOf('.'));
+            allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileName}` });
          });
     }
 
@@ -228,11 +250,11 @@ export function UploadForm() {
     
     setIsSubmitting(true);
     
-    const initialFiles: UploadableFile[] = allFilesToProcess.map(f => ({ ...f, progress: 0, status: 'pending' }));
+    const initialFiles: UploadableFile[] = allFilesToProcess.map(f => ({ file: f.file, path: f.publicId, progress: 0, status: 'pending' }));
     setUploadableFiles(initialFiles);
     
     try {
-        const uploadPromises = initialFiles.map(processSingleFile);
+        const uploadPromises = allFilesToProcess.map(f => processSingleFile(f.file, f.publicId));
         await Promise.all(uploadPromises);
 
         toast({
@@ -262,24 +284,23 @@ export function UploadForm() {
     return (
       <div className="space-y-2">
         {fileList.map((file) => {
-          if (!file) return null;
-          const moduleName = isNotes ? Object.keys(files as { [key: string]: ResourceFile }).find(key => (files as any)[key] === file) : '';
-          const filePath = isNotes 
-            ? `resources/${watchedFields.scheme}/${watchedFields.branch}/${watchedFields.semester}/${watchedFields.subject}/notes/${moduleName}/${file.name}`
-            : `resources/${watchedFields.scheme}/${watchedFields.branch}/${watchedFields.semester}/${watchedFields.subject}/questionPapers/${file.name}`;
+          if (!file || !file.url) return null;
+          // Cloudinary public_id is derived from the URL, assuming standard Cloudinary structure
+          const publicId = file.url.split('/upload/').pop()?.split('/').slice(1).join('/').replace(/\.pdf$/, '');
+          if (!publicId) return null;
           
           return (
-            <div key={filePath} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+            <div key={file.url} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
               <span className="truncate">{file.name}</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-destructive hover:text-destructive"
-                onClick={() => handleDelete(filePath)}
-                disabled={isDeleting === filePath}
+                onClick={() => handleDelete(publicId)}
+                disabled={isDeleting === publicId}
               >
-                {isDeleting === filePath ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                {isDeleting === publicId ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
               </Button>
             </div>
           );

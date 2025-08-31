@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { Subject, ResourceFile } from '@/lib/data';
-import { getFilesForSubject } from '@/lib/firebase';
+import { getFilesForSubject } from '@/lib/cloudinary';
 import { vtuResources } from '@/lib/vtu-data';
 
 // Helper to convert static data links into the ResourceFile format
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
   try {
     const path = `resources/${scheme}/${branch}/${semester}`;
     
-    // Fetch dynamic subjects from Firebase
+    // Fetch dynamic subjects from Cloudinary
     const dynamicSubjects = await getFilesForSubject(path, subjectName || undefined);
     
     // Create a map of dynamic subjects by their ID for easy lookup
@@ -91,9 +91,14 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Failed to retrieve resources:', error);
-    // Even if firebase fails, we can still return the static data.
+    // Even if cloudinary fails, we can still return the static data.
      if(staticSubjects.length > 0) {
-        return NextResponse.json(staticSubjects);
+        const formattedStaticSubjects = staticSubjects.map(staticSubject => ({
+            ...staticSubject,
+            notes: staticSubject.notes ? convertStaticNotes(staticSubject.notes) : {},
+            questionPapers: staticSubject.questionPapers ? convertStaticQPs(staticSubject.questionPapers) : [],
+        }));
+        return NextResponse.json(formattedStaticSubjects);
      }
     return NextResponse.json({ error: 'Failed to retrieve resources' }, { status: 500 });
   }
