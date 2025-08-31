@@ -272,14 +272,14 @@ export function UploadForm({ cloudName }: UploadFormProps) {
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const fileName = file.name.substring(0, file.name.lastIndexOf('.')).replace(/[^a-zA-Z0-9-]/g, '');
+                   const fileName = file.name.replace(/[^a-zA-Z0-9-.]/g, '');
                    allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}`, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const fileName = file.name.substring(0, file.name.lastIndexOf('.')).replace(/[^a-zA-Z0-9-]/g, '');
+            const fileName = file.name.replace(/[^a-zA-Z0-9-.]/g, '');
             allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileName}` });
          });
     }
