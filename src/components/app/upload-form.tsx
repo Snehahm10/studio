@@ -134,9 +134,9 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
   useEffect(() => {
     if (watchedScheme && watchedBranch && watchedSemester && debouncedSubjectQuery) {
-        fetchSubject();
+      fetchSubject();
     } else {
-        setExistingSubject(null);
+      setExistingSubject(null);
     }
   }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject]);
 
