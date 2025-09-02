@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { schemes, branches, years, semesters as allSemesters, cycles, Subject, ResourceFile } from '@/lib/data';
+import { vtuResources } from '@/lib/vtu-data';
 import { Loader2, Upload, File as FileIcon, CheckCircle2, Trash2, XCircle } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -39,7 +40,7 @@ const formSchema = z.object({
   branch: z.string().min(1, 'Please select a branch'),
   year: z.string().min(1, 'Please select a year'),
   semester: z.string().min(1, 'Please select a semester'),
-  subject: z.string().min(1, 'Please enter a subject name'),
+  subject: z.string().min(1, 'Please select a subject'),
   resourceType: z.enum(['notes', 'questionPaper']),
   questionPaperFile: fileSchema,
   module1Files: fileSchema,
@@ -83,6 +84,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   const [existingSubject, setExistingSubject] = useState<Subject | null>(null);
   const [isFetchingSubject, setIsFetchingSubject] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [availableSubjects, setAvailableSubjects] = useState<{ id: string, name: string }[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -102,8 +104,19 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   const watchedYear = watch('year');
   const watchedSemester = watch('semester');
   const watchedSubject = watch('subject');
+  
+  useEffect(() => {
+    if (watchedScheme && watchedBranch && watchedSemester) {
+      const schemeData = vtuResources[watchedScheme as keyof typeof vtuResources];
+      const branchData = schemeData?.[watchedBranch as keyof typeof schemeData];
+      const semesterData = branchData?.[watchedSemester as keyof typeof branchData] || [];
+      setAvailableSubjects(semesterData.map(s => ({ id: s.id, name: s.name })));
+    } else {
+      setAvailableSubjects([]);
+    }
+    resetField('subject');
+  }, [watchedScheme, watchedBranch, watchedSemester, resetField]);
 
-  const [debouncedSubjectQuery] = useDebounce(watchedSubject, 500);
 
   const fetchSubject = useCallback(async () => {
     const { scheme, branch, semester, subject } = getValues();
@@ -115,8 +128,14 @@ export function UploadForm({ cloudName }: UploadFormProps) {
 
     setIsFetchingSubject(true);
     try {
-      const subjectParam = subject.trim();
-      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}&subject=${encodeURIComponent(subjectParam)}`);
+      const subjectName = availableSubjects.find(s => s.id === subject)?.name || '';
+      if (!subjectName) {
+          setExistingSubject(null);
+          setIsFetchingSubject(false);
+          return;
+      }
+      
+      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}&subject=${encodeURIComponent(subjectName)}`);
       if (response.ok) {
         const data = await response.json();
         setExistingSubject(data.length > 0 ? data[0] : null);
@@ -129,16 +148,16 @@ export function UploadForm({ cloudName }: UploadFormProps) {
     } finally {
       setIsFetchingSubject(false);
     }
-  }, [getValues]);
+  }, [getValues, availableSubjects]);
 
 
   useEffect(() => {
-    if (debouncedSubjectQuery && watchedScheme && watchedBranch && watchedSemester) {
+    if (watchedSubject) {
         fetchSubject();
     } else {
         setExistingSubject(null);
     }
-  }, [debouncedSubjectQuery, watchedScheme, watchedBranch, watchedSemester, fetchSubject]);
+  }, [watchedSubject, fetchSubject]);
 
 
 
@@ -183,6 +202,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
   const processSingleFile = (file: File, publicId: string, moduleName?: string): Promise<string> => {
     return new Promise((resolve, reject) => {
         const { scheme, branch, semester, subject, resourceType } = getValues();
+        const subjectName = availableSubjects.find(s => s.id === subject)?.name || 'unknown-subject';
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', 'vtu_assistant');
@@ -206,7 +226,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                 const response = JSON.parse(xhr.responseText);
 
                 const metadata: ResourceMetadata = {
-                  scheme, branch, semester, subject: subject.trim(), resourceType,
+                  scheme, branch, semester, subject: subjectName, resourceType,
                   file: {
                     name: file.name,
                     url: response.secure_url,
@@ -262,7 +282,13 @@ export function UploadForm({ cloudName }: UploadFormProps) {
      }
     
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
-    const subjectNameForPath = values.subject.trim();
+    const subjectNameForPath = availableSubjects.find(s => s.id === values.subject)?.name;
+
+    if (!subjectNameForPath) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not find the selected subject name.' });
+        return;
+    }
+
     const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectNameForPath}`;
 
     if (values.resourceType === 'notes') {
@@ -272,15 +298,15 @@ export function UploadForm({ cloudName }: UploadFormProps) {
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const fileName = file.name;
-                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileName}`, moduleName });
+                   const fileNameWithExt = file.name;
+                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${fileNameWithExt}`, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const fileName = file.name;
-            allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileName}` });
+            const fileNameWithExt = file.name;
+            allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${fileNameWithExt}` });
          });
     }
 
@@ -325,10 +351,9 @@ export function UploadForm({ cloudName }: UploadFormProps) {
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           
-          // The publicId for deletion can be derived from the URL by removing the Cloudinary base and version.
           const urlParts = file.url.match(/upload\/(?:v[0-9]+\/)?(.*)/);
           if (!urlParts || !urlParts[1]) return null;
-          // Decode the URI component to handle spaces and other special characters correctly.
+          
           const publicId = decodeURIComponent(urlParts[1]);
           
           return (
@@ -413,7 +438,7 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                     <FormLabel>Year</FormLabel>
                     <Select onValueChange={(value) => {
                         field.onChange(value);
-                        form.resetField('semester');
+                        resetField('semester');
                     }} defaultValue={field.value} disabled={isSubmitting}>
                       <FormControl>
                         <SelectTrigger>
@@ -457,17 +482,32 @@ export function UploadForm({ cloudName }: UploadFormProps) {
                 )}
               />
             <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject Name or Code</FormLabel>
+              control={form.control}
+              name="subject"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subject</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={availableSubjects.length === 0 || isSubmitting}
+                  >
                     <FormControl>
-                        <Input placeholder="e.g., Data Structures or 22CS32" {...field} disabled={isSubmitting} />
+                      <SelectTrigger>
+                        <SelectValue placeholder={availableSubjects.length > 0 ? "Select Subject" : "Select filters first"} />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                    <SelectContent>
+                      {availableSubjects.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
              <FormField
                 control={form.control}
