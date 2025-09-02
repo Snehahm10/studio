@@ -20,7 +20,7 @@ function processCloudinaryResource(resource: any): Subject | null {
 
     const fileData: ResourceFile = {
         name: context.name,
-        url: resource.secure_url,
+        url: context.url, // Use the URL from context
         summary: context.summary || '',
     };
     
@@ -98,4 +98,3 @@ export async function updateFileContext(publicId: string, context: Record<string
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {
     await updateFileContext(publicId, { summary });
 }
-

@@ -65,11 +65,12 @@ export async function saveResourceMetadata(metadata: ResourceMetadata) {
       resourcetype: metadata.resourceType,
       module: metadata.module || '',
       name: metadata.file.name,
+      url: metadata.file.url,
     };
 
     // Cloudinary context keys must be lowercase and can only contain letters, numbers, and underscores.
     const sanitizedContext = Object.fromEntries(
-      Object.entries(context).map(([key, value]) => [key.toLowerCase(), String(value).replace(/[^a-zA-Z0-9\s-_]/g, '')])
+      Object.entries(context).map(([key, value]) => [key.toLowerCase(), String(value).replace(/[^a-zA-Z0-9\s-._:]/g, '')])
     );
     
     await updateFileContext(metadata.file.publicId, sanitizedContext);

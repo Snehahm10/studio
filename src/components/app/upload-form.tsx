@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -299,7 +298,6 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         return;
     }
 
-    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectData.name}`;
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
     if (values.resourceType === 'notes') {
@@ -309,13 +307,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   allFilesToProcess.push({ file, publicId: `${basePath}/notes/${moduleName}/${file.name}`, moduleName });
+                   // Use original filename as public_id to allow Cloudinary to handle uniqueness if needed.
+                   allFilesToProcess.push({ file, publicId: file.name, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            allFilesToProcess.push({ file, publicId: `${basePath}/questionPapers/${file.name}` });
+            allFilesToProcess.push({ file, publicId: file.name });
          });
     }
 
@@ -360,6 +359,9 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           
+          // In Cloudinary, the public_id is the path without the version and resource_type prefix
+          // e.g. from https://res.cloudinary.com/demo/raw/upload/v1532185548/docs/datasheet.pdf
+          // public_id is docs/datasheet.pdf
           const urlParts = file.url.split('/upload/');
           if (urlParts.length < 2) return null;
           
