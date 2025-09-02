@@ -202,7 +202,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     }
   };
 
-  const processSingleFile = (file: File, publicId: string, uploadPreset: string, moduleName?: string): Promise<string> => {
+  const processSingleFile = (file: File, publicId: string, moduleName?: string): Promise<string> => {
     return new Promise((resolve, reject) => {
         const { scheme, branch, semester, subject: subjectId, resourceType } = getValues();
         const subjectName = availableSubjects.find(s => s.id === subjectId)?.name;
@@ -335,7 +335,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     setUploadableFiles(initialFiles);
     
     try {
-        const uploadPromises = allFilesToProcess.map(f => processSingleFile(f.file, f.publicId, uploadPreset, f.moduleName));
+        const uploadPromises = allFilesToProcess.map(f => processSingleFile(f.file, f.publicId, f.moduleName));
         await Promise.all(uploadPromises);
 
         toast({
