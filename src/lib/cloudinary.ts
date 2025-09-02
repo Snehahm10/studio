@@ -24,10 +24,13 @@ function processCloudinaryResource(resource: any): Subject | null {
         summary: context.summary || '',
     };
     
+    // Corrected the context keys to be lowercase as they are saved
     if (context.resourcetype === 'notes' && context.module) {
         subject.notes[context.module] = fileData;
     } else if (context.resourcetype === 'questionPaper') {
         subject.questionPapers.push(fileData);
+    } else {
+        return null; // Don't return a subject if it doesn't fit a category
     }
     
     return subject;
@@ -40,7 +43,6 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
 
     let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
     if (subjectName) {
-        // Corrected the context key from context.subject to context.subject
         searchQuery += ` AND context.subject=${JSON.stringify(subjectName.trim())}`;
     }
 
@@ -48,6 +50,7 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
         const results = await cloudinary.search
             .expression(searchQuery)
             .with_field('context')
+            .max_results(500) // increase max results to ensure all files are fetched
             .execute();
         
         const subjectsMap = new Map<string, Subject>();
@@ -62,8 +65,13 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
             if (existing) {
                 // Merge notes
                 Object.assign(existing.notes, parsedSubject.notes);
-                // Merge QPs
-                existing.questionPapers.push(...parsedSubject.questionPapers);
+                // Merge QPs, avoiding duplicates
+                const existingQpUrls = new Set(existing.questionPapers.map(qp => qp.url));
+                parsedSubject.questionPapers.forEach(qp => {
+                    if (!existingQpUrls.has(qp.url)) {
+                        existing.questionPapers.push(qp);
+                    }
+                });
             } else {
                 subjectsMap.set(subjectId, parsedSubject);
             }
@@ -92,4 +100,3 @@ export async function updateFileContext(publicId: string, context: Record<string
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {
     await updateFileContext(publicId, { summary });
 }
-
