@@ -218,7 +218,6 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('api_key', apiKey);
         formData.append('upload_preset', uploadPreset);
         formData.append('public_id', publicId);
         formData.append('resource_type', 'raw'); 
@@ -293,14 +292,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         return;
      }
     
-    const subjectName = availableSubjects.find(s => s.id === values.subject)?.name;
+    const subjectData = availableSubjects.find(s => s.id === values.subject);
 
-    if (!subjectName) {
+    if (!subjectData) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not find the selected subject name.' });
         return;
     }
 
-    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectName}`;
+    const basePath = `resources/${values.scheme}/${values.branch}/${values.semester}/${subjectData.name}`;
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
     if (values.resourceType === 'notes') {
@@ -365,6 +364,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
           if (urlParts.length < 2) return null;
           
           const publicIdWithVersion = urlParts[1];
+          // The public_id in Cloudinary doesn't include the version. We need to remove it for deletion.
           const publicId = publicIdWithVersion.substring(publicIdWithVersion.indexOf('/') + 1);
 
           if (!publicId) return null;
@@ -660,4 +660,3 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     </Form>
   );
 }
-
