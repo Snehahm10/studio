@@ -185,7 +185,11 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
   
   const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
   
-  const handleDelete = async (publicId: string) => {
+  const handleDelete = async (publicId: string | undefined) => {
+    if (!publicId) {
+      toast({ variant: 'destructive', title: 'Deletion Failed', description: 'Could not determine the file ID to delete.' });
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
       return;
     }
@@ -220,6 +224,8 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         formData.append('file', file);
         formData.append('upload_preset', uploadPreset);
         formData.append('public_id', publicId);
+        
+        // This is critical for ensuring non-image files are accessible.
         formData.append('resource_type', 'raw'); 
 
         const xhr = new XMLHttpRequest();
@@ -302,6 +308,11 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
+    const getPublicId = (filename: string) => {
+        const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+        return `${nameWithoutExt}_${Date.now()}`;
+    }
+
     if (values.resourceType === 'notes') {
         const moduleFields: (keyof FormValues)[] = ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files'];
         moduleFields.forEach((field, index) => {
@@ -309,14 +320,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const publicId = file.name;
+                   const publicId = getPublicId(file.name);
                    allFilesToProcess.push({ file, publicId, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const publicId = file.name;
+            const publicId = getPublicId(file.name);
             allFilesToProcess.push({ file, publicId });
          });
     }
@@ -362,14 +373,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           
-          const urlParts = file.url.split('/');
-          const fileNameWithExtension = urlParts.pop() || '';
-          // For raw files, the publicId is often just the filename without extension if 'use_filename_as_display_name' is on
-          // but our simplified approach uses the full filename. Best to extract from what we know.
-          // In our simplified logic, the publicId is just the filename.
-          const publicId = file.name;
-
-          if (!publicId) return null;
+          const publicId = (file as any).publicId; // Get publicId from the extended ResourceFile type
 
           return (
             <div key={file.url} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">

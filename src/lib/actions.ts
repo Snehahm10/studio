@@ -66,6 +66,7 @@ export async function saveResourceMetadata(metadata: ResourceMetadata) {
       module: metadata.module || '',
       name: metadata.file.name,
       url: metadata.file.url,
+      publicid: metadata.file.publicId
     };
 
     // Cloudinary context keys must be lowercase and can only contain letters, numbers, and underscores.

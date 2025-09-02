@@ -3,6 +3,8 @@
 import { cloudinary } from './cloudinary-server';
 import { Subject, ResourceFile } from './data';
 
+type ExtendedResourceFile = ResourceFile & { publicId: string };
+
 function processCloudinaryResource(resource: any): Subject | null {
     if (!resource.context) return null;
 
@@ -18,15 +20,16 @@ function processCloudinaryResource(resource: any): Subject | null {
         questionPapers: [],
     };
 
-    const fileData: ResourceFile = {
+    const fileData: ExtendedResourceFile = {
         name: context.name,
-        url: context.url, // Use the URL from context
+        url: context.url,
         summary: context.summary || '',
+        publicId: context.publicid,
     };
     
     if (context.resourcetype === 'notes' && context.module) {
         subject.notes[context.module] = fileData;
-    } else if (context.resourcetype === 'questionpaper') { // Cloudinary keys are lowercase
+    } else if (context.resourcetype === 'questionpaper') {
         subject.questionPapers.push(fileData);
     } else {
         return null;
@@ -42,7 +45,6 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
 
     let searchQuery = `resource_type:raw AND context.scheme=${scheme} AND context.branch=${branch} AND context.semester=${semester}`;
     if (subjectName) {
-        // Use exact match for subject name search
         searchQuery += ` AND context.subject="${subjectName.trim()}"`;
     }
 
