@@ -306,9 +306,11 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
+    // Sanitize filename to create a safe public_id
     const getPublicId = (filename: string) => {
         const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-        return `${nameWithoutExt}_${Date.now()}`;
+        const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_');
+        return `${sanitized}_${Date.now()}`;
     }
 
     if (values.resourceType === 'notes') {
@@ -318,14 +320,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
             if (files && files.length > 0) {
                 const moduleName = `module${index + 1}`;
                 files.forEach(file => {
-                   const publicId = file.name
+                   const publicId = getPublicId(file.name)
                    allFilesToProcess.push({ file, publicId, moduleName });
                 });
             }
         });
     } else if (values.resourceType === 'questionPaper' && values.questionPaperFile) {
          values.questionPaperFile.forEach(file => {
-            const publicId = file.name
+            const publicId = getPublicId(file.name)
             allFilesToProcess.push({ file, publicId });
          });
     }
@@ -664,3 +666,5 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     </Form>
   );
 }
+
+    
