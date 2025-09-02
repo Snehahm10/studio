@@ -481,7 +481,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
@@ -661,5 +661,3 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     </Form>
   );
 }
-
-    
