@@ -306,7 +306,8 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
-    // Sanitize filename to create a safe public_id
+    // Sanitize filename to create a safe public_id for Cloudinary.
+    // THIS IS THE CRITICAL FIX: No folder paths, just the sanitized filename.
     const getPublicId = (filename: string) => {
         const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
         const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_');
@@ -666,5 +667,3 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     </Form>
   );
 }
-
-    
