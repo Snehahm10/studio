@@ -305,7 +305,6 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
 
-    // Sanitize filename to create a safe public_id for Cloudinary.
     const getPublicId = (filename: string) => {
         const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
         const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '_');
@@ -372,7 +371,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           
-          const publicId = (file as any).publicId; // Get publicId from the extended ResourceFile type
+          const publicId = (file as any).publicId; 
 
           return (
             <div key={file.url} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
