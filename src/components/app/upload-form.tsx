@@ -221,10 +221,10 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         formData.append('api_key', apiKey);
         formData.append('upload_preset', uploadPreset);
         formData.append('public_id', publicId);
-        formData.append('resource_type', 'raw'); // This is the crucial fix
+        formData.append('resource_type', 'raw'); 
 
         const xhr = new XMLHttpRequest();
-        const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`; // Use generic upload endpoint
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
         xhr.open('POST', url, true);
 
 
@@ -361,11 +361,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         {fileList.map((file) => {
           if (!file || !file.url) return null;
           
-          const urlParts = file.url.match(/upload\/(?:v[0-9]+\/)?(.*)/);
-          if (!urlParts || !urlParts[1]) return null;
+          // Extracts the public_id from a URL like: 
+          // https://res.cloudinary.com/<cloud_name>/raw/upload/v12345/resources/..../file.pdf
+          // The public_id is everything after the version number: resources/..../file.pdf
+          const match = file.url.match(/\/upload\/v\d+\/(.*)/);
+          const publicIdWithExt = match ? decodeURIComponent(match[1]) : '';
           
-          const publicIdWithExt = decodeURIComponent(urlParts[1]);
-          
+          if (!publicIdWithExt) return null;
+
           return (
             <div key={file.url} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
               <Link href={file.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
