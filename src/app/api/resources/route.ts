@@ -89,3 +89,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to retrieve resources' }, { status: 500 });
   }
 }
+
