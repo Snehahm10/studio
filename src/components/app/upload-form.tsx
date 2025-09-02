@@ -215,14 +215,12 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
             reject(new Error(errorMsg));
             return;
         }
-        
-        const publicIdWithoutExt = publicId.substring(0, publicId.lastIndexOf('.'));
 
         const formData = new FormData();
         formData.append('file', file);
         formData.append('api_key', apiKey);
         formData.append('upload_preset', uploadPreset);
-        formData.append('public_id', publicIdWithoutExt);
+        formData.append('public_id', publicId);
         formData.append('resource_type', 'raw');
 
         const xhr = new XMLHttpRequest();
@@ -243,16 +241,14 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
                 const metadata: ResourceMetadata = {
                   scheme, branch, semester, subject: subjectName, resourceType,
+                  module: moduleName || undefined,
                   file: {
                     name: file.name,
                     url: response.secure_url,
                     publicId: response.public_id,
                   }
                 };
-                if (moduleName) {
-                    metadata.module = moduleName;
-                }
-
+                
                 await saveResourceMetadata(metadata);
                 
                 setUploadableFiles(prev => prev.map(f => f.path === publicId ? { ...f, status: 'complete', progress: 100 } : f));

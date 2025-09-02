@@ -27,7 +27,7 @@ function processCloudinaryResource(resource: any): Subject | null {
     // Corrected the context keys to be lowercase as they are saved
     if (context.resourcetype === 'notes' && context.module) {
         subject.notes[context.module] = fileData;
-    } else if (context.resourcetype === 'questionPaper') {
+    } else if (context.resourcetype === 'questionpaper') {
         subject.questionPapers.push(fileData);
     } else {
         return null; // Don't return a subject if it doesn't fit a category
