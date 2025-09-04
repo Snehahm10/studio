@@ -79,6 +79,11 @@ export async function getFilesForSubject(basePath: string, subjectName?: string)
                 subjectsMap.set(subjectId, parsedSubject);
             }
         }
+        
+        if (subjectName) {
+            return subjectsMap.has(subjectName) ? [subjectsMap.get(subjectName)!] : [];
+        }
+
         return Array.from(subjectsMap.values());
     } catch (error) {
         console.error('Error fetching from Cloudinary:', error);
