@@ -245,6 +245,8 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
         xhr.open('POST', url, true);
 
+        // Fix for CORS issues
+        xhr.withCredentials = false;
 
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
