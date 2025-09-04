@@ -366,7 +366,10 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
 
   const renderExistingFiles = (files: { [key: string]: ResourceFile } | ResourceFile[], isNotes: boolean) => {
     const fileList = isNotes ? Object.values(files as { [key: string]: ResourceFile }).filter(f => f) : (files as ResourceFile[]);
-    if (fileList.length === 0) return <p className="text-sm text-muted-foreground">No existing files.</p>;
+    if (fileList.length === 0) {
+        return <p className="text-sm text-muted-foreground">No existing files.</p>;
+    }
+
 
     return (
       <div className="space-y-2">
@@ -486,7 +489,7 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
@@ -666,3 +669,5 @@ export function UploadForm({ cloudName, apiKey, uploadPreset }: UploadFormProps)
     </Form>
   );
 }
+
+    

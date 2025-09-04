@@ -95,3 +95,19 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) (or the port shown in your terminal, as the default may be different).
+
+### How to Preview Uploaded PDFs
+
+Once a PDF is uploaded correctly, Cloudinary will provide a public URL. To display this in your application, you can use an `iframe`:
+
+```tsx
+<iframe
+  src={pdfUrl}
+  width="100%"
+  height="600px"
+  style={{ border: "none" }}
+></iframe>
+```
+This is handled within the `ResourceDialog` component when you click on a resource link.
+
+    
