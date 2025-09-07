@@ -301,13 +301,9 @@ const processSingleFile = async (file: File, publicId: string, moduleName?: stri
 
     const allFilesToProcess: { file: File, publicId: string, moduleName?: string }[] = [];
     
-    const getPublicId = (originalFilename: string, subjectId: string, resourceType: string, moduleName?: string) => {
-        const sanitizedFilename = originalFilename.substring(0, originalFilename.lastIndexOf('.')).replace(/[^a-zA-Z0-9_.-]/g, '_');
-        const uniquePart = Date.now();
-        if (resourceType === 'notes' && moduleName) {
-            return `${subjectId}_${moduleName}_${sanitizedFilename}_${uniquePart}`;
-        }
-        return `${subjectId}_${resourceType}_${sanitizedFilename}_${uniquePart}`;
+    // Generates a URL-safe, random, and clean public_id
+    const getPublicId = () => {
+        return window.crypto.getRandomValues(new Uint8Array(12)).reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '');
     }
     
     const fileFields: (keyof FormValues)[] = ['module1Files', 'module2Files', 'module3Files', 'module4Files', 'module5Files', 'questionPaperFile'];
@@ -325,8 +321,7 @@ const processSingleFile = async (file: File, publicId: string, moduleName?: stri
                     continue; // Skip this file
                 }
                 const moduleName = field.startsWith('module') ? field.replace('Files', '') : undefined;
-                const resourceTypeForFile = field === 'questionPaperFile' ? 'questionPaper' : 'notes';
-                const publicId = getPublicId(file.name, values.subject, resourceTypeForFile, moduleName);
+                const publicId = getPublicId();
                 allFilesToProcess.push({ file, publicId, moduleName });
             }
         }
@@ -680,8 +675,5 @@ const processSingleFile = async (file: File, publicId: string, moduleName?: stri
     </Form>
   );
 }
-
-
-
 
     
