@@ -109,5 +109,3 @@ Once a PDF is uploaded correctly, Cloudinary will provide a public URL. To displ
 ></iframe>
 ```
 This is handled within the `ResourceDialog` component when you click on a resource link.
-
-    
