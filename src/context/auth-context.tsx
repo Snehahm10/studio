@@ -1,17 +1,23 @@
 'use client';
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser, getAdditionalUserInfo } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Loader2 } from 'lucide-react';
 
 interface User {
-  id: string;
-  email: string;
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  accessToken?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string) => void;
+  signInWithGoogle: () => Promise<void>;
   logout: () => void;
 }
 
@@ -21,36 +27,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('vtu-user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        const tokenResult = await firebaseUser.getIdTokenResult();
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          accessToken: tokenResult.token,
+        });
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error('Failed to parse user from localStorage', error);
-      localStorage.removeItem('vtu-user');
-    } finally {
       setLoading(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string) => {
-    const newUser: User = { id: new Date().toISOString(), email };
-    localStorage.setItem('vtu-user', JSON.stringify(newUser));
-    setUser(newUser);
-    router.push('/');
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    try {
+      await signInWithPopup(auth, provider);
+      router.push('/');
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('vtu-user');
-    setUser(null);
+  const logout = async () => {
+    await signOut(auth);
     router.push('/login');
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user && pathname !== '/login') {
+     router.replace('/login');
+     return (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
