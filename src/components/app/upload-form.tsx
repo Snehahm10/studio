@@ -268,6 +268,7 @@ export function UploadForm({ cloudName, uploadPreset }: UploadFormProps) {
         const response = await fetch(url, {
             method: 'POST',
             body: formData,
+            mode: 'cors',
         });
 
         const responseData = await response.json();
@@ -681,5 +682,3 @@ export function UploadForm({ cloudName, uploadPreset }: UploadFormProps) {
     </Form>
   );
 }
-
-    
