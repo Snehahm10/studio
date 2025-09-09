@@ -218,11 +218,16 @@ export function UploadForm({ cloudName, uploadPreset }: UploadFormProps) {
     }
   };
 
-const processSingleFile = async (uploadableFile: UploadableFile): Promise<string> => {
+  const getPublicId = (): string => {
+    // Generate a random ID to ensure it's always unique and clean.
+    return crypto.randomUUID().replace(/-/g, '');
+  };
+
+  const processSingleFile = async (uploadableFile: UploadableFile): Promise<string> => {
     const { file, id, module } = uploadableFile;
     const { scheme, branch, semester, subject: subjectId, resourceType } = getValues();
     const subjectName = availableSubjects.find(s => s.id === subjectId)?.name;
-
+    
     if (!subjectName) {
         const errorMsg = "Could not determine subject name for upload.";
         console.error(errorMsg);
@@ -233,8 +238,10 @@ const processSingleFile = async (uploadableFile: UploadableFile): Promise<string
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
-    formData.append('use_filename', 'true');
-    formData.append('unique_filename', 'true'); // Use true to prevent overwrites, false to allow them
+    
+    // Generate a clean public_id and specify the folder
+    const publicId = getPublicId();
+    formData.append('public_id', publicId);
     
     const folderPath = `resources/${scheme}/${branch}/${semester}/${subjectName}/${resourceType === 'notes' ? 'notes' : 'questionPapers'}`;
     formData.append('folder', folderPath);
@@ -246,7 +253,7 @@ const processSingleFile = async (uploadableFile: UploadableFile): Promise<string
         subject: subjectName,
         resourcetype: resourceType,
         module: module || '',
-        name: file.name,
+        name: file.name, // Store original filename in context
     };
     const contextString = Object.entries(context)
                                 .map(([key, value]) => `${key}=${value}`)
@@ -266,12 +273,13 @@ const processSingleFile = async (uploadableFile: UploadableFile): Promise<string
         const responseData = await response.json();
 
         if (response.ok) {
-            setUploadableFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'complete', progress: 100, url: responseData.secure_url, publicId: responseData.public_id } : f));
+            const finalPublicId = responseData.public_id;
+            setUploadableFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'complete', progress: 100, url: responseData.secure_url, publicId: finalPublicId } : f));
             toast({
                 title: 'Upload Successful',
                 description: `Successfully uploaded "${file.name}".`,
             });
-            return responseData.public_id;
+            return finalPublicId;
         } else {
             const errorMessage = responseData.error.message;
             console.error(`Upload failed for ${file.name}:`, errorMessage);
@@ -673,3 +681,5 @@ const processSingleFile = async (uploadableFile: UploadableFile): Promise<string
     </Form>
   );
 }
+
+    

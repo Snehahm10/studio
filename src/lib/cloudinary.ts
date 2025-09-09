@@ -21,7 +21,7 @@ function processCloudinaryResource(resource: any): Subject | null {
     };
 
     const fileData: ExtendedResourceFile = {
-        name: context.name || resource.public_id,
+        name: context.name || resource.public_id, // Use stored filename from context
         url: resource.secure_url,
         summary: context.summary || '',
         publicId: resource.public_id,
@@ -113,3 +113,5 @@ export async function updateFileContext(publicId: string, context: Record<string
 export async function updateFileSummary(publicId: string, summary: string): Promise<void> {
     await updateFileContext(publicId, { summary });
 }
+
+    
