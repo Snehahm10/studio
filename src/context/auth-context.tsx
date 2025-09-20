@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser, getIdToken } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 
@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
@@ -48,15 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!loading && !user && pathname !== '/login') {
-      router.replace('/login');
-    }
-     if (!loading && user && pathname === '/login') {
-      router.replace('/');
-    }
-  }, [user, loading, pathname, router]);
-
   const signInWithGoogle = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
@@ -66,9 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     try {
       await signInWithPopup(auth, provider);
-      router.push('/');
+      // The user state change will trigger redirection in the page component
     } catch (error) {
       console.error('Error signing in with Google', error);
+      // Let the user try again
       setLoading(false);
     }
   };
@@ -82,23 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user && pathname !== '/login') {
-     return (
-        <div className="flex h-screen items-center justify-center">
-          <p>Redirecting to login...</p>
-          <Loader2 className="ml-4 h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
       {children}

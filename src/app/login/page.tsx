@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
 import { Loader2 } from 'lucide-react';
 
@@ -15,26 +16,35 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage() {
-    const { signInWithGoogle, loading } = useAuth();
+    const { user, signInWithGoogle, loading } = useAuth();
+    const router = useRouter();
 
+    useEffect(() => {
+        if (user) {
+            router.replace('/');
+        }
+    }, [user, router]);
+
+    if (loading || user) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+    
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md shadow-2xl">
-                <CardHeader className="text-center">
-                    <CardTitle className="text-3xl font-bold text-primary">Welcome to VTU Assistant</CardTitle>
-                    <CardDescription>Sign in to access your resources</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button 
-                        onClick={signInWithGoogle} 
-                        className="w-full"
-                        disabled={loading}
-                    >
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                        Sign in with Google
-                    </Button>
-                </CardContent>
-            </Card>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+            <h1 className="text-3xl font-bold text-primary mb-2">Welcome to VTU Assistant</h1>
+            <p className="text-muted-foreground mb-8">Sign in to continue</p>
+            <Button 
+                onClick={signInWithGoogle} 
+                className="w-full max-w-xs"
+                disabled={loading}
+            >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                Sign in with Google
+            </Button>
         </div>
     );
 }
