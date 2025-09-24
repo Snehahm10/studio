@@ -5,7 +5,6 @@ import { CourseSelector } from './course-selector';
 import { ResourceList } from './resource-list';
 import { Subject } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-context';
 
 export function HomePageClient() {
   const [selectedFilters, setSelectedFilters] = useState<{
@@ -18,27 +17,15 @@ export function HomePageClient() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const handleSearch = async (filters: { scheme: string; branch: string; year: string; semester: string }) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Not Authenticated', description: 'Please log in to search for resources.'});
-      return;
-    }
-
     setIsLoading(true);
     setSelectedFilters(filters);
     
     try {
       const { scheme, branch, semester } = filters;
-      // The user object now has a simple token string
-      const idToken = user.idToken;
       
-      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}`, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
+      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}`);
       
       if (!response.ok) {
         const errorData = await response.json();

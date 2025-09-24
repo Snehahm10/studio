@@ -8,21 +8,14 @@ export async function GET(request: Request) {
   const branch = searchParams.get('branch');
   const semester = searchParams.get('semester');
   const subjectName = searchParams.get('subject');
-  const idToken = request.headers.get('Authorization')?.split('Bearer ')[1];
-
-  if (!idToken) {
-    // In a real app, this token would be validated. 
-    // Since we are using a dummy auth, we will just check for its presence.
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   if (!scheme || !branch || !semester) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
 
   try {
-    // With a real OAuth flow, you'd use a real user ID.
-    const userId = 'dummy-user'; 
+    // Authentication has been removed, so userId is a placeholder.
+    const userId = 'public-user'; 
     
     const resources = await getFilesFromDrive(userId, { scheme, branch, semester, subject: subjectName });
 

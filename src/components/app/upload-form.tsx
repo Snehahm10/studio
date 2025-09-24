@@ -27,7 +27,6 @@ import { vtuResources } from '@/lib/vtu-data';
 import { Loader2, Upload, File as FileIcon, CheckCircle2, XCircle } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-context';
 import { uploadFileToDrive } from '@/ai/flows/upload-flow';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -62,7 +61,6 @@ export function UploadForm() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'pending' | 'uploading' | 'complete' | 'error'>('pending');
   const { toast } = useToast();
-  const { user } = useAuth();
   const [availableSubjects, setAvailableSubjects] = useState<{ id: string, name: string }[]>([]);
 
   const form = useForm<FormValues>({
@@ -125,17 +123,11 @@ export function UploadForm() {
   };
 
   async function onSubmit(values: FormValues) {
-    if (!user || !user.idToken) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload files.' });
-        return;
-    }
-    
     setIsSubmitting(true);
     setUploadStatus('uploading');
     setUploadProgress(10);
 
     try {
-        const idToken = user.idToken;
         setUploadProgress(20);
 
         const fileContent = await fileToBase64(values.file);
@@ -147,7 +139,8 @@ export function UploadForm() {
             fileName: values.file.name,
             fileContent,
             mimeType: values.file.type,
-            idToken,
+            // A placeholder token is sent as auth is removed
+            idToken: 'anonymous-token',
             folderPath: `VTU Assistant/${values.scheme}/${values.branch}/${values.semester}/${subjectName}/${values.resourceType}`,
             metadata: {
                 module: values.module || '',
@@ -350,7 +343,7 @@ export function UploadForm() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select module" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       {[1,2,3,4,5].map(m => (
