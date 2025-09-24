@@ -5,16 +5,16 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { google } from 'googleapis';
-import { adminAuth } from '@/lib/firebase-admin';
 import { PassThrough } from 'stream';
 
 const UploadFileToDriveInputSchema = z.object({
   fileName: z.string().describe('The name of the file to upload.'),
   fileContent: z.string().describe('The base64 encoded content of the file.'),
   mimeType: z.string().describe('The MIME type of the file.'),
-  idToken: z.string().describe("The user's Firebase ID token for authentication."),
+  // The idToken is now a simple string, not necessarily a Firebase token
+  idToken: z.string().describe("The user's authentication token."),
   folderPath: z.string().describe('The path in Google Drive to upload the file to, e.g., "VTU Assistant/Notes".'),
   metadata: z.record(z.string()).describe('Additional metadata for the file.'),
 });
@@ -33,14 +33,9 @@ export const uploadFileToDrive = ai.defineFlow(
   },
   async (input) => {
     try {
-        // 1. Authenticate the user with the ID token
-        const decodedToken = await adminAuth.verifyIdToken(input.idToken);
-        
-        // At this point, the user is authenticated.
-        // We'll use Application Default Credentials for the service account
-        // to interact with Google Drive API. For user-specific actions,
-        // we would need to set up OAuth2 with user consent.
-        // For this app, we assume a single service account owns the files.
+        // 1. Authenticate the service account
+        // In a real OAuth flow, you would use the user's access token.
+        // For this service-account-based approach, we use Application Default Credentials.
         const auth = new google.auth.GoogleAuth({
             scopes: ['https://www.googleapis.com/auth/drive.file'],
         });

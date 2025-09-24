@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -126,7 +125,7 @@ export function UploadForm() {
   };
 
   async function onSubmit(values: FormValues) {
-    if (!user) {
+    if (!user || !user.idToken) {
         toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload files.' });
         return;
     }
@@ -136,7 +135,7 @@ export function UploadForm() {
     setUploadProgress(10);
 
     try {
-        const idToken = await user.getIdToken();
+        const idToken = user.idToken;
         setUploadProgress(20);
 
         const fileContent = await fileToBase64(values.file);
@@ -224,7 +223,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Branch" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {branches.map((b) => (
@@ -251,7 +250,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {years.map((y) => (
@@ -275,7 +274,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={selectedYear ? `Select ${semesterLabel}`: "Select Year first"} />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {availableSemesters.map((s) => (
@@ -327,7 +326,7 @@ export function UploadForm() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select resource type" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="notes">Notes</SelectItem>

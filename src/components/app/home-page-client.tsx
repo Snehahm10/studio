@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -32,7 +31,8 @@ export function HomePageClient() {
     
     try {
       const { scheme, branch, semester } = filters;
-      const idToken = await user.getIdToken();
+      // The user object now has a simple token string
+      const idToken = user.idToken;
       
       const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}`, {
         headers: {

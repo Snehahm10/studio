@@ -1,8 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import { getFilesFromDrive } from '@/lib/drive';
-import { getAuth } from "firebase-admin/auth";
-import { adminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,6 +11,8 @@ export async function GET(request: Request) {
   const idToken = request.headers.get('Authorization')?.split('Bearer ')[1];
 
   if (!idToken) {
+    // In a real app, this token would be validated. 
+    // Since we are using a dummy auth, we will just check for its presence.
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -21,8 +21,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const userId = decodedToken.uid;
+    // With a real OAuth flow, you'd use a real user ID.
+    const userId = 'dummy-user'; 
     
     const resources = await getFilesFromDrive(userId, { scheme, branch, semester, subject: subjectName });
 
@@ -30,9 +30,6 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('Failed to retrieve resources:', error);
-    if (error.code === 'auth/id-token-expired') {
-        return NextResponse.json({ error: 'Authentication token has expired. Please log in again.' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'Failed to retrieve resources from Google Drive' }, { status: 500 });
   }
 }
