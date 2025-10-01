@@ -38,13 +38,6 @@ export default function LoginPage() {
       password: '',
     },
   });
-  
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
