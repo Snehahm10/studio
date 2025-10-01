@@ -187,20 +187,23 @@ export function UploadForm() {
     }
   }
 
-  const statusIndicator = () => {
-    switch(uploadStatus) {
-      case 'uploading':
-        return <p className="text-sm text-muted-foreground mt-1">Uploading to Drive...</p>;
-      case 'summarizing':
-        return <p className="text-sm text-muted-foreground mt-1">Analyzing and summarizing file...</p>;
-      case 'complete':
-        return <div className="flex items-center text-sm text-green-600 mt-1"><CheckCircle2 className="mr-1 h-4 w-4" />Upload complete!</div>;
-      case 'error':
-        return <div className="flex items-center text-sm text-destructive mt-1"><XCircle className="mr-1 h-4 w-4" />Upload failed.</div>;
-      default:
-        return null;
-    }
-  };
+  let statusIndicatorContent = null;
+  switch(uploadStatus) {
+    case 'uploading':
+      statusIndicatorContent = <p className="text-sm text-muted-foreground mt-1">Uploading to Drive...</p>;
+      break;
+    case 'summarizing':
+      statusIndicatorContent = <p className="text-sm text-muted-foreground mt-1">Analyzing and summarizing file...</p>;
+      break;
+    case 'complete':
+      statusIndicatorContent = <div className="flex items-center text-sm text-green-600 mt-1"><CheckCircle2 className="mr-1 h-4 w-4" />Upload complete!</div>;
+      break;
+    case 'error':
+      statusIndicatorContent = <div className="flex items-center text-sm text-destructive mt-1"><XCircle className="mr-1 h-4 w-4" />Upload failed.</div>;
+      break;
+    default:
+      statusIndicatorContent = null;
+  }
   
   return (
     <Form {...form}>
@@ -399,7 +402,7 @@ export function UploadForm() {
         {isSubmitting && (
           <div>
              <Progress value={uploadProgress} className="h-2 mt-1" />
-             {statusIndicator()}
+             {statusIndicatorContent}
           </div>
         )}
        
