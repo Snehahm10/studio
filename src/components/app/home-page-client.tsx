@@ -34,10 +34,10 @@ export function HomePageClient() {
     setSelectedFilters(filters);
     
     try {
-      const { scheme, branch, semester } = filters;
+      const { scheme, branch, year, semester } = filters;
       const idToken = await user.getIdToken();
       
-      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&semester=${semester}`, {
+      const response = await fetch(`/api/resources?scheme=${scheme}&branch=${branch}&year=${year}&semester=${semester}`, {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },
@@ -51,7 +51,8 @@ export function HomePageClient() {
       const fetchedSubjects: Subject[] = await response.json();
       setSubjects(fetchedSubjects);
 
-    } catch (error: any) {
+    } catch (error: any)
+       {
       console.error(error);
       toast({
         variant: 'destructive',

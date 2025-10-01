@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const scheme = searchParams.get('scheme');
   const branch = searchParams.get('branch');
+  const year = searchParams.get('year');
   const semester = searchParams.get('semester');
 
   const authHeader = request.headers.get('Authorization');
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   }
   const idToken = authHeader.split('Bearer ')[1];
 
-  if (!scheme || !branch || !semester) {
+  if (!scheme || !branch || !semester || !year) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
 
@@ -27,6 +28,11 @@ export async function GET(request: Request) {
     // 1. Get static resources for the selected criteria
     const staticSubjectsForSemester: Subject[] = vtuResources[scheme as keyof typeof vtuResources]?.[branch as keyof typeof vtuResources]?.[semester as keyof typeof vtuResources] || [];
 
+    // If it's the first year, the data is structured differently and we don't fetch from Drive for now.
+    if (year === '1') {
+        return NextResponse.json(staticSubjectsForSemester);
+    }
+      
     // 2. Create a deep copy to avoid modifying the original vtu-data
     const subjectsMap = new Map<string, Subject>();
     staticSubjectsForSemester.forEach(staticSub => {
