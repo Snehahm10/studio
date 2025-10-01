@@ -106,7 +106,7 @@ export function UploadForm() {
       setAvailableSubjects([]);
     }
     resetField('subject');
-  }, [watchedScheme, watchedBranch, watchedSemester, resetField]);
+  }, [watchedScheme, watchedBranch, watchedSemester]);
   
   const availableSemesters = useMemo(() => {
     if (!selectedYear) return [];
@@ -187,7 +187,7 @@ export function UploadForm() {
   }
 
   let statusIndicatorContent = null;
-  switch(uploadStatus) {
+  switch (uploadStatus) {
     case 'uploading':
       statusIndicatorContent = <p className="text-sm text-muted-foreground mt-1">Uploading to Drive...</p>;
       break;
@@ -419,5 +419,3 @@ export function UploadForm() {
     </Form>
   );
 }
-
-    
