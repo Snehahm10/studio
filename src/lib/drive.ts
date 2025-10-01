@@ -75,13 +75,33 @@ async function createFolder(drive: any, name: string, parentId: string): Promise
  */
 async function findOrCreateNestedFolder(drive: any, path: string[]): Promise<string> {
   let currentParentId = 'root'; // Start from the root of Google Drive
+  let isFirstFolder = true;
 
   for (const folderName of path) {
     let folderId = await findFolder(drive, folderName, currentParentId);
     if (!folderId) {
       folderId = await createFolder(drive, folderName, currentParentId);
+
+      // If this is the first folder being created (the root 'VTU Assistant' folder), share it.
+      if (isFirstFolder && currentParentId === 'root') {
+        try {
+          await drive.permissions.create({
+            fileId: folderId,
+            requestBody: {
+              role: 'writer', // 'writer' role is equivalent to 'Editor' in the UI
+              type: 'user',
+              emailAddress: 'priyahanjgimath@gmail.com',
+            },
+          });
+          console.log(`Successfully shared root folder with priyahanjgimath@gmail.com`);
+        } catch (shareError) {
+          console.error('Failed to share the root folder:', shareError);
+          // We don't throw an error here, as the primary goal is to upload the file.
+        }
+      }
     }
     currentParentId = folderId;
+    isFirstFolder = false;
   }
   return currentParentId;
 }
