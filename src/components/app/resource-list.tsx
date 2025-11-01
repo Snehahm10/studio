@@ -1,3 +1,4 @@
+
 import { Subject } from '@/lib/data';
 import { ResourceCard } from './resource-card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -6,6 +7,7 @@ type ResourceListProps = {
   subjects: Subject[];
   isLoading: boolean;
   filtersSet: boolean;
+  onResourceChange: () => void;
 };
 
 function ResourceSkeleton() {
@@ -20,7 +22,7 @@ function ResourceSkeleton() {
     )
 }
 
-export function ResourceList({ subjects, isLoading, filtersSet }: ResourceListProps) {
+export function ResourceList({ subjects, isLoading, filtersSet, onResourceChange }: ResourceListProps) {
   if (isLoading) {
     return (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -51,7 +53,7 @@ export function ResourceList({ subjects, isLoading, filtersSet }: ResourceListPr
         <h2 className="text-2xl font-bold mb-4">Subjects</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {subjects.map((subject) => (
-                <ResourceCard key={subject.id} subject={subject} />
+                <ResourceCard key={subject.id} subject={subject} onResourceChange={onResourceChange} />
             ))}
         </div>
     </div>

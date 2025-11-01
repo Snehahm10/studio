@@ -1,7 +1,7 @@
 
 'use server';
 
-import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
@@ -45,16 +45,37 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
 
   try {
     await s3Client.send(command);
-    const region = await s3Client.config.region();
-    if (!region) {
-      throw new Error('AWS region is not configured or could not be determined.');
-    }
     return getPublicUrl(BUCKET_NAME, key);
   } catch (error: any) {
     console.error(`Error uploading file "${fileName}" to S3. AWS-SDK-S3 Error:`, error);
-    throw new Error(error.message || `File upload to AWS S3 failed.`);
+    throw new Error(`File upload to AWS S3 failed: ${error.message}`);
   }
 }
+
+/**
+ * Deletes a file from AWS S3.
+ * @param key The full key of the object to delete.
+ * @returns An object indicating success.
+ */
+export async function deleteFileFromS3(key: string) {
+    if (!BUCKET_NAME) {
+        throw new Error('S3 bucket name is not configured.');
+    }
+
+    const command = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+    });
+
+    try {
+        await s3Client.send(command);
+        return { success: true };
+    } catch (error: any) {
+        console.error(`Error deleting file with key "${key}" from S3:`, error);
+        throw new Error(`File deletion from AWS S3 failed: ${error.message}`);
+    }
+}
+
 
 /**
  * Lists files from a specified folder path in AWS S3 and generates pre-signed URLs.
@@ -89,6 +110,7 @@ export async function getFilesFromS3(path: string) {
             return {
                 name: file.Key!.split('/').pop()!,
                 url: url,
+                s3Key: file.Key!,
                 summary: undefined
             };
         })
@@ -101,4 +123,3 @@ export async function getFilesFromS3(path: string) {
     return [];
   }
 }
-

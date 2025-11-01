@@ -2,6 +2,7 @@
 export type ResourceFile = {
   name: string;
   url: string;
+  s3Key?: string; // S3 object key, useful for delete operations
   summary?: string;
 }
 

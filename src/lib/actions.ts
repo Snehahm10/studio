@@ -1,7 +1,7 @@
 
 'use server';
 
-import { uploadFileToS3 } from '@/lib/s3';
+import { uploadFileToS3, deleteFileFromS3 } from '@/lib/s3';
 import { z } from 'zod';
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { revalidatePath } from 'next/cache';
@@ -96,3 +96,17 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
   }
 }
 
+export async function deleteResource(s3Key: string): Promise<{ success?: boolean; error?: string }> {
+    try {
+        if (!s3Key) {
+            return { error: 'S3 key is required for deletion.' };
+        }
+        await deleteFileFromS3(s3Key);
+        revalidatePath('/api/resources');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Deletion failed:", error);
+        const errorMessage = typeof error.message === 'string' ? error.message : "An unknown error occurred during deletion.";
+        return { error: errorMessage };
+    }
+}

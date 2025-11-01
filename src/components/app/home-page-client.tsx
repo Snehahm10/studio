@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { CourseSelector } from './course-selector';
 import { ResourceList } from './resource-list';
 import { Subject } from '@/lib/data';
@@ -20,7 +21,7 @@ export function HomePageClient() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSearch = async (filters: { scheme: string; branch: string; year: string; semester: string }) => {
+  const handleSearch = useCallback(async (filters: { scheme: string; branch: string; year: string; semester: string }) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -63,13 +64,24 @@ export function HomePageClient() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  const refreshResources = useCallback(() => {
+    if (selectedFilters) {
+      handleSearch(selectedFilters);
+    }
+  }, [selectedFilters, handleSearch]);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="space-y-8">
         <CourseSelector onSearch={handleSearch} isLoading={isLoading} />
-        <ResourceList subjects={subjects} isLoading={isLoading} filtersSet={!!selectedFilters} />
+        <ResourceList 
+            subjects={subjects} 
+            isLoading={isLoading} 
+            filtersSet={!!selectedFilters} 
+            onResourceChange={refreshResources}
+        />
       </div>
     </div>
   );

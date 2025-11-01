@@ -10,9 +10,10 @@ import { useState } from 'react';
 
 type ResourceCardProps = {
   subject: Subject;
+  onResourceChange: () => void;
 };
 
-export function ResourceCard({ subject }: ResourceCardProps) {
+export function ResourceCard({ subject, onResourceChange }: ResourceCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
@@ -41,6 +42,7 @@ export function ResourceCard({ subject }: ResourceCardProps) {
         isOpen={dialogOpen}
         onOpenChange={setDialogOpen}
         subject={subject}
+        onResourceDeleted={onResourceChange}
       />
     </>
   );
