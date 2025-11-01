@@ -68,7 +68,7 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
 
     // --- Robust Validation ---
     if (!scheme || !branch || !semester || !subject || !resourceType || !file || file.size === 0) {
-      return { error: 'Missing required form fields.' };
+      return { error: 'Missing or invalid required form fields.' };
     }
     if (resourceType === 'Notes' && !module) {
         return { error: 'Module is required for Notes.'};
@@ -78,10 +78,12 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     // Determine the folder path in S3
     const path = ['VTU Assistant', scheme, branch, semester, subject];
     
-    if (resourceType === 'Notes' && module) {
-      path.push('notes', module); 
+    if (resourceType === 'Notes') {
+      path.push('notes', module!); 
     } else if (resourceType === 'Question Paper') {
       path.push('question-papers');
+    } else {
+        return { error: 'Invalid resource type provided.'}
     }
 
     // Get file content as Buffer
@@ -102,3 +104,4 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     return { error: error.message || "An unknown error occurred during upload." };
   }
 }
+
