@@ -1,31 +1,13 @@
-diff --git a/node_modules/pdf-parse/lib/pdf-parse.js b/node_modules/pdf-parse/lib/pdf-parse.js
-index 24d752f..e525164 100644
---- a/node_modules/pdf-parse/lib/pdf-parse.js
-+++ b/node_modules/pdf-parse/lib/pdf-parse.js
-@@ -5,7 +5,7 @@ const { getDocument, version } = require('pdfjs-dist/legacy/build/pdf.js');
- // some weird fonts need this
- require('regenerator-runtime/runtime');
+diff --git a/node_modules/pdf-parse/index.js b/node_modules/pdf-parse/index.js
+index b288c42..2c14044 100644
+--- a/node_modules/pdf-parse/index.js
++++ b/node_modules/pdf-parse/index.js
+@@ -4,7 +4,7 @@
+ const util = require('util');
+ const path = require('path');
+ const fs = require('fs');
+-fs.readFileSync(path.join(__dirname, '../test/data/05-versions-space.pdf'));
++//fs.readFileSync(path.join(__dirname, '../test/data/05-versions-space.pdf'));
  
--let PDF_FILE = './test/data/05-versions-space.pdf';
-+//let PDF_FILE = './test/data/05-versions-space.pdf';
  
- const DEFAULT_OPTIONS = {
-     // internal page parser callback
-@@ -34,7 +34,7 @@ function render_page(pageData) {
-         return item.str;
-     }).join('');
- }
--
-+/*
- function getChar(items) {
-     let chars = items.map( (item) => {
-         return item.str;
-@@ -42,7 +42,7 @@ function getChar(items) {
-     let str = chars.join('').replace(/\s+/g, ' ').trim();
-     return str;
- }
--
-+*/
- async function PDF(dataBuffer, options) {
- 
-     let ret = {
+ const PDF_INFO_MAP = {
