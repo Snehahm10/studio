@@ -95,3 +95,4 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     return { error: errorMessage };
   }
 }
+
