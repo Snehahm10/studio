@@ -13,8 +13,10 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
-function getPublicUrl(bucket: string, key: string, region: string) {
-    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+function getPublicUrl(bucket: string, key: string) {
+    // Use the virtual-hosted-style URL format, which is the modern standard.
+    // It does not include the region in the hostname.
+    return `https://${bucket}.s3.amazonaws.com/${key}`;
 }
 
 /**
@@ -30,21 +32,29 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     throw new Error('S3 bucket name is not configured.');
   }
 
-  const key = [...path, fileName].join('/');
+  // Ensure there are no empty segments in the path, which can create invalid keys
+  const validPath = path.filter(segment => segment && segment.length > 0);
+  const key = [...validPath, fileName].join('/');
   
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
+    // ACL has been removed to be compatible with default S3 Block Public Access settings.
+    // Bucket policies should be used to manage public access if needed.
   });
 
   try {
     await s3Client.send(command);
-    return getPublicUrl(BUCKET_NAME, key, process.env.AWS_REGION!);
-  } catch (error) {
-    console.error(`Error uploading file "${fileName}" to S3 with key "${key}":`, error);
-    throw new Error('File upload to AWS S3 failed.');
+    return getPublicUrl(BUCKET_NAME, key);
+  } catch (error: any) {
+    // --- Enhanced Error Logging ---
+    // Log the specific AWS S3 error message for better debugging.
+    console.error(`Error uploading file "${fileName}" to S3. AWS-SDK-S3 Error:`, error.message);
+    console.error('Full Error Object:', JSON.stringify(error, null, 2));
+    // --- End Enhanced Error Logging ---
+    throw new Error(`File upload to AWS S3 failed. Reason: ${error.message}`);
   }
 }
 
@@ -71,7 +81,7 @@ export async function getFilesFromS3(path: string) {
 
     return Contents.map(file => {
         const fileName = file.Key!.split('/').pop()!;
-        const url = getPublicUrl(BUCKET_NAME, file.Key!, process.env.AWS_REGION!);
+        const url = getPublicUrl(BUCKET_NAME, file.Key!);
         return {
             name: fileName,
             url: url,
