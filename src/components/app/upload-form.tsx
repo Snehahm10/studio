@@ -344,7 +344,7 @@ export function UploadForm() {
                       <SelectContent>
                         <SelectItem value="Notes">Notes</SelectItem>
                         <SelectItem value="Question Paper">Question Paper</SelectItem>
-                      </Content>
+                      </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
