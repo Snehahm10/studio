@@ -14,6 +14,8 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 function getPublicUrl(bucket: string, key: string, region: string) {
+    // URI-encode the key to handle special characters in the URL
+    const encodedKey = encodeURIComponent(key);
     return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
@@ -30,8 +32,10 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     throw new Error('S3 bucket name is not configured.');
   }
   
+  // Sanitize the filename to remove problematic characters
+  const sanitizedFileName = fileName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
   const validPath = path.filter(segment => segment && segment.length > 0);
-  const key = [...validPath, fileName].join('/');
+  const key = [...validPath, sanitizedFileName].join('/');
   
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -43,9 +47,13 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
   try {
     await s3Client.send(command);
     const region = (await s3Client.config.region()) || process.env.AWS_REGION;
-    return getPublicUrl(BUCKET_NAME, key, region as string);
+    if (!region) {
+      throw new Error('AWS region is not configured or could not be determined.');
+    }
+    return getPublicUrl(BUCKET_NAME, key, region);
   } catch (error: any) {
     console.error(`Error uploading file "${fileName}" to S3. AWS-SDK-S3 Error:`, error);
+    // Throw a new, clean error to avoid circular structure issues.
     throw new Error(error.message || `File upload to AWS S3 failed.`);
   }
 }
@@ -71,10 +79,12 @@ export async function getFilesFromS3(path: string) {
       return [];
     }
     const region = (await s3Client.config.region()) || process.env.AWS_REGION;
-
+    if (!region) {
+      throw new Error('AWS region is not configured or could not be determined.');
+    }
     return Contents.map(file => {
         const fileName = file.Key!.split('/').pop()!;
-        const url = getPublicUrl(BUCKET_NAME, file.Key!, region as string);
+        const url = getPublicUrl(BUCKET_NAME, file.Key!, region);
         return {
             name: fileName,
             url: url,
