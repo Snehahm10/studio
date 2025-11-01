@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import { getFilesFromS3 } from '@/lib/s3';
 import { vtuResources } from '@/lib/vtu-data';
 import { Subject, ResourceFile } from '@/lib/data';
-import { adminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,20 +11,11 @@ export async function GET(request: Request) {
   const year = searchParams.get('year');
   const semester = searchParams.get('semester');
 
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const idToken = authHeader.split('Bearer ')[1];
-
   if (!scheme || !branch || !semester || !year) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
 
   try {
-    // Verify the user's token to secure the endpoint
-    await adminAuth.verifyIdToken(idToken);
-    
     // 1. Get static resources for the selected criteria
     const schemeData = vtuResources[scheme as keyof typeof vtuResources];
     if (!schemeData) {
@@ -98,9 +88,6 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('Failed to retrieve resources:', error);
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
-        return NextResponse.json({ error: 'Authentication token is invalid. Please log in again.' }, { status: 401 });
-    }
     return NextResponse.json({ error: 'An internal server error occurred while retrieving resources.' }, { status: 500 });
   }
 }
