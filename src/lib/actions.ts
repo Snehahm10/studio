@@ -1,9 +1,10 @@
 
 'use server';
 
-import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { uploadFileToS3 } from '@/lib/s3';
 import { z } from 'zod';
+import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
+
 
 const VTU_RESOURCES_TEXT = `
 Visvesvaraya Technological University (VTU) is one of the largest technological universities in India.
@@ -63,23 +64,26 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     const module = formData.get('module') as string | null;
     const file = formData.get('file') as File;
 
-    if (!file || file.size === 0) {
-      return { error: 'File is required.' };
-    }
+    // --- Robust Validation ---
     if (!scheme || !branch || !semester || !subject || !resourceType) {
         return { error: 'Missing required form fields.' };
     }
-
+     if (!file || file.size === 0) {
+      return { error: 'File is required.' };
+    }
+    if (resourceType === 'Notes' && !module) {
+        return { error: 'Module is required for Notes.'};
+    }
+    // --- End Validation ---
 
     // Determine the folder path in S3
     const path = ['VTU Assistant', scheme, branch, semester, subject];
     
-    if (resourceType === 'Notes' && module) {
-      path.push('notes', module);
+    if (resourceType === 'Notes') {
+      // The module is guaranteed to exist here because of the validation above
+      path.push('notes', module!); 
     } else if (resourceType === 'Question Paper') {
       path.push('question-papers');
-    } else if (resourceType === 'Notes' && !module) {
-        return { error: 'Module is required for Notes.'};
     }
 
     // Get file content as Buffer
