@@ -5,12 +5,14 @@ Welcome to VTU Assistant, your one-stop solution for accessing academic resource
 
 ## Core Features
 
--   **User Authentication**: Secure login and signup functionality for personalized access.
+-   **User Authentication**: Secure login and signup functionality using Firebase Authentication for a personalized experience.
 -   **Dynamic Resource Finder**: A powerful search interface to filter resources by Scheme, Branch, Year, and Semester.
--   **Resource Uploading**: An intuitive form for users to contribute their own notes and question papers, which are stored securely in AWS S3.
+-   **Resource Uploading**: An intuitive form for users to contribute their own notes and question papers.
+    -   **Secure File Storage**: Files are stored securely in a private AWS S3 bucket.
+    -   **Overwrite Protection**: If a file for a specific module already exists, the app prompts for confirmation before replacing it, preventing accidental data loss.
+-   **Resource Management**: Users can delete resources they have uploaded, giving them full control over their contributions.
 -   **Dynamic Resource Display**: Fetches and displays available resources, including user-uploaded content and static links, in a clean, card-based layout.
 -   **AI-Powered Chatbot**: A Genkit-based AI assistant to help with queries related to VTU subjects and syllabus.
--   **AI-Powered Summarization**: Uploaded PDF documents are automatically summarized using an AI flow to provide quick insights.
 
 ## Tech Stack
 
@@ -30,7 +32,8 @@ Follow these instructions to get the project up and running on your local machin
 ### Prerequisites
 
 -   [Node.js](https://nodejs.org/) (v18 or later)
--   `npm` or `yarn` package manager
+-   `npm` package manager
+-   A Google Cloud/Firebase Account
 -   An AWS Account
 
 ### Installation
@@ -65,7 +68,7 @@ This project requires environment variables to connect to Firebase and AWS S3.
     # AWS S3 Configuration (for file storage)
     AWS_ACCESS_KEY_ID="YOUR_AWS_ACCESS_KEY"
     AWS_SECRET_ACCESS_KEY="YOUR_AWS_SECRET_KEY"
-    AWS_REGION="your-s3-bucket-region" # e.g., us-east-1
+    AWS_REGION="your-s3-bucket-region" # e.g., us-east-1, eu-north-1
     S3_BUCKET_NAME="your-s3-bucket-name"
     ```
 
@@ -79,10 +82,9 @@ This project requires environment variables to connect to Firebase and AWS S3.
 2.  **AWS S3**:
     -   Go to the [AWS Management Console](https://aws.amazon.com/console/) and sign in.
     -   Navigate to the **S3** service.
-    -   Create a new S3 bucket. Choose a unique name and select the region you want to use.
-    -   Once the bucket is created, navigate to the **Permissions** tab.
-    -   Under **Block public access (bucket settings)**, click **Edit** and uncheck "Block all public access". Save the changes and confirm. This is necessary for the app to make uploaded files publicly readable.
-    -   Create an IAM user with programmatic access to get an Access Key ID and Secret Access Key. Grant this user `AmazonS3FullAccess` permissions (for simplicity) or a more restrictive policy that allows `s3:PutObject`, `s3:PutObjectAcl`, and `s3:ListBucket` actions on your bucket.
+    -   Create a new S3 bucket. Choose a unique name and select the region you want to use. **Ensure this region matches the `AWS_REGION` in your `.env` file.**
+    -   Keep the "Block all public access" setting **checked (ON)**. The application is designed to work with a private bucket by generating secure, temporary (pre-signed) URLs.
+    -   Create an IAM user with programmatic access to get an Access Key ID and Secret Access Key. Grant this user a policy that allows `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, and `s3:DeleteObject` actions on your bucket.
     -   Add your AWS credentials, region, and bucket name to the `.env` file.
 
 ### Running the Development Server
@@ -93,4 +95,4 @@ Once the setup is complete, you can run the application:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) (or the port shown in your terminal, as the default may be different).
+Open [http://localhost:3000](http://localhost:3000) (or the port shown in your terminal).
