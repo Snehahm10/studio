@@ -41,8 +41,6 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
-    // ACL has been removed to be compatible with default S3 Block Public Access settings.
-    // Bucket policies should be used to manage public access if needed.
   });
 
   try {
