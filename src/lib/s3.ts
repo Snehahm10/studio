@@ -4,7 +4,7 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
+  region: 'eu-north-1', // Explicitly set the bucket region
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -14,8 +14,7 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 function getPublicUrl(bucket: string, key: string, region: string) {
-    // URI-encode the key to handle special characters in the URL
-    const encodedKey = encodeURIComponent(key);
+    // The modern, path-style URL format is generally more compatible.
     return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
@@ -46,7 +45,7 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
 
   try {
     await s3Client.send(command);
-    const region = (await s3Client.config.region()) || process.env.AWS_REGION;
+    const region = await s3Client.config.region();
     if (!region) {
       throw new Error('AWS region is not configured or could not be determined.');
     }
@@ -78,7 +77,7 @@ export async function getFilesFromS3(path: string) {
     if (!Contents) {
       return [];
     }
-    const region = (await s3Client.config.region()) || process.env.AWS_REGION;
+    const region = await s3Client.config.region();
     if (!region) {
       throw new Error('AWS region is not configured or could not be determined.');
     }
