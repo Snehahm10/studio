@@ -27,8 +27,21 @@ export async function GET(request: Request) {
     await adminAuth.verifyIdToken(idToken);
     
     // 1. Get static resources for the selected criteria
-    const staticSubjectsForSemester: Subject[] = vtuResources[scheme as keyof typeof vtuResources]?.[branch as keyof typeof vtuResources]?.[semester as keyof typeof vtuResources] || [];
+    const schemeData = vtuResources[scheme as keyof typeof vtuResources];
+    if (!schemeData) {
+        return NextResponse.json([]);
+    }
 
+    const branchData = schemeData[branch as keyof typeof schemeData];
+    if (!branchData) {
+        return NextResponse.json([]);
+    }
+
+    const staticSubjectsForSemester: Subject[] = branchData[semester as keyof typeof branchData] || [];
+    if (staticSubjectsForSemester.length === 0) {
+        return NextResponse.json([]);
+    }
+    
     // If it's the first year, return the static data directly as it has no dynamic content from S3.
     if (year === '1') {
         return NextResponse.json(staticSubjectsForSemester);
@@ -50,6 +63,10 @@ export async function GET(request: Request) {
             const notesPath = [...s3Path, 'notes', moduleKey];
             const notesFiles = await getFilesFromS3(notesPath.join('/'));
             if (notesFiles.length > 0) {
+                // Ensure the notes object and module key exist
+                if (!subject.notes) {
+                    subject.notes = {};
+                }
                 subject.notes[moduleKey] = {
                     name: notesFiles[0].name,
                     url: notesFiles[0].url,
@@ -67,6 +84,9 @@ export async function GET(request: Request) {
                 url: file.url,
                 summary: file.summary,
             }));
+             if (!subject.questionPapers) {
+                subject.questionPapers = [];
+            }
             subject.questionPapers.push(...driveQps);
         }
     }
@@ -77,9 +97,9 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('Failed to retrieve resources:', error);
-    if (error.code === 'auth/id-token-expired') {
-        return NextResponse.json({ error: 'Authentication token has expired. Please log in again.' }, { status: 401 });
+    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+        return NextResponse.json({ error: 'Authentication token is invalid. Please log in again.' }, { status: 401 });
     }
-    return NextResponse.json({ error: 'Failed to retrieve resources from S3' }, { status: 500 });
+    return NextResponse.json({ error: 'An internal server error occurred while retrieving resources.' }, { status: 500 });
   }
 }
