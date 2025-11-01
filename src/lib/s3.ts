@@ -41,6 +41,7 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
+    ACL: 'public-read'
   });
 
   try {
@@ -102,14 +103,9 @@ export async function getFilesFromS3(path: string) {
     
     const signedUrls = await Promise.all(
         files.map(async (file) => {
-            const getObjectCommand = new GetObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: file.Key!,
-            });
-            const url = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 }); // URL expires in 1 hour
             return {
                 name: file.Key!.split('/').pop()!,
-                url: url,
+                url: getPublicUrl(BUCKET_NAME!, file.Key!),
                 s3Key: file.Key!,
                 summary: undefined
             };
@@ -122,4 +118,35 @@ export async function getFilesFromS3(path: string) {
     console.error(`Error listing files or signing URLs from S3 path "${path}":`, error);
     return [];
   }
+}
+
+/**
+ * Checks for existing files in a specified S3 path.
+ * @param path The nested folder path as an array of strings.
+ * @returns The key of the first file found, or null if no files exist.
+ */
+export async function checkForExistingFile(path: string[]): Promise<string | null> {
+    if (!BUCKET_NAME) {
+        throw new Error('S3 bucket name is not configured.');
+    }
+    const keyPrefix = path.join('/');
+
+    const listCommand = new ListObjectsV2Command({
+        Bucket: BUCKET_NAME,
+        Prefix: keyPrefix + '/',
+        MaxKeys: 1, // We only need to know if at least one file exists
+    });
+
+    try {
+        const { Contents } = await s3Client.send(listCommand);
+        if (Contents && Contents.length > 0 && Contents[0].Key) {
+            return Contents[0].Key; // Return the key of the first existing file
+        }
+        return null; // No file found
+    } catch (error: any) {
+        console.error(`Error checking for existing file in S3 path "${keyPrefix}":`, error);
+        // In case of error, we can assume no file exists to avoid blocking uploads.
+        // A more robust solution might handle specific errors differently.
+        return null;
+    }
 }

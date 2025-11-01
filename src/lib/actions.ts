@@ -1,7 +1,7 @@
 
 'use server';
 
-import { uploadFileToS3, deleteFileFromS3 } from '@/lib/s3';
+import { uploadFileToS3, deleteFileFromS3, checkForExistingFile } from '@/lib/s3';
 import { z } from 'zod';
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { revalidatePath } from 'next/cache';
@@ -49,6 +49,8 @@ export async function getChatbotResponse(
 const UploadResourceOutputSchema = z.object({
   fileUrl: z.string().optional(),
   error: z.string().optional(),
+  conflict: z.boolean().optional(),
+  existingFileKey: z.string().optional(),
 });
 
 type UploadResourceOutput = z.infer<typeof UploadResourceOutputSchema>;
@@ -65,6 +67,8 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     const resourceType = formData.get('resourceType') as 'Notes' | 'Question Paper';
     const module = formData.get('module') as string | null;
     const file = formData.get('file') as File;
+    const overwrite = formData.get('overwrite') === 'true';
+    const existingFileKey = formData.get('existingFileKey') as string | null;
     
     if (!scheme || !branch || !semester || !subject || !resourceType || !file || file.size === 0) {
       return { error: 'Missing or invalid required form fields.' };
@@ -74,11 +78,24 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     }
 
     const path = ['VTU Assistant', scheme, branch, semester, subject];
-    
     if (resourceType === 'Notes' && module) {
       path.push('notes', module); 
     } else if (resourceType === 'Question Paper') {
       path.push('question-papers');
+    }
+
+    if (!overwrite) {
+        const conflictingFileKey = await checkForExistingFile(path);
+        if (conflictingFileKey) {
+            return {
+                conflict: true,
+                existingFileKey: conflictingFileKey
+            };
+        }
+    }
+    
+    if (overwrite && existingFileKey) {
+        await deleteFileFromS3(existingFileKey);
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());

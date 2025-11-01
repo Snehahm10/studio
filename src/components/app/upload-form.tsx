@@ -23,6 +23,16 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { schemes, branches, years, semesters as allSemesters, cycles } from '@/lib/data';
 import { vtuResources } from '@/lib/vtu-data';
 import { Loader2, Upload, CheckCircle2, XCircle } from 'lucide-react';
@@ -65,6 +75,7 @@ export function UploadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'pending' | 'uploading' | 'complete' | 'error'>('pending');
+  const [conflict, setConflict] = useState<{ show: boolean, existingFileKey: string | null }>({ show: false, existingFileKey: null });
   const { toast } = useToast();
   const [availableSubjects, setAvailableSubjects] = useState<{ id: string, name: string }[]>([]);
 
@@ -81,7 +92,7 @@ export function UploadForm() {
     },
   });
 
-  const { watch, reset, resetField, register } = form;
+  const { watch, reset, resetField, register, handleSubmit } = form;
   const watchedScheme = watch('scheme');
   const watchedBranch = watch('branch');
   const watchedSemester = watch('semester');
@@ -119,7 +130,7 @@ export function UploadForm() {
 
   const semesterLabel = selectedYear === '1' ? 'Cycle' : 'Semester';
 
-  async function onSubmit(values: FormValues) {
+  const handleUpload = async (values: FormValues, overwrite = false, existingFileKey: string | null = null) => {
     if (!user) {
         toast({
             variant: 'destructive',
@@ -141,8 +152,23 @@ export function UploadForm() {
       }
     });
 
+    if (overwrite) {
+        formData.append('overwrite', 'true');
+        if (existingFileKey) {
+            formData.append('existingFileKey', existingFileKey);
+        }
+    }
+
+
     try {
         const result = await uploadResource(formData);
+
+        if (result.conflict && result.existingFileKey) {
+            setUploadStatus('pending');
+            setIsSubmitting(false);
+            setConflict({ show: true, existingFileKey: result.existingFileKey });
+            return;
+        }
 
         if (result.fileUrl) {
             setUploadProgress(100);
@@ -167,9 +193,17 @@ export function UploadForm() {
             description: error.message || 'Could not upload the file. Please try again.',
         });
     } finally {
-        setIsSubmitting(false);
+        if (!conflict.show) { // Don't reset submitting state if we are showing conflict dialog
+            setIsSubmitting(false);
+        }
     }
   }
+
+  const onConfirmOverwrite = () => {
+    handleSubmit((values) => handleUpload(values, true, conflict.existingFileKey))();
+    setConflict({ show: false, existingFileKey: null });
+  };
+
 
   let statusIndicatorContent = null;
   switch (uploadStatus) {
@@ -187,8 +221,9 @@ export function UploadForm() {
   }
   
   return (
+    <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(values => handleUpload(values))} className="space-y-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
            <FormField
                 control={form.control}
@@ -399,5 +434,26 @@ export function UploadForm() {
         </div>
       </form>
     </Form>
+
+    <AlertDialog open={conflict.show} onOpenChange={(open) => !open && setConflict({ show: false, existingFileKey: null })}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>File Already Exists</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      A file for this subject and module already exists. Do you want to replace it with the new file?
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConflict({ show: false, existingFileKey: null })} disabled={isSubmitting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={onConfirmOverwrite} disabled={isSubmitting}>
+                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Replace
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
