@@ -5,7 +5,7 @@ import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } fr
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'eu-north-1',
+  region: 'eu-north-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -14,9 +14,9 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
-function getPublicUrl(bucket: string, key: string, region: string) {
+function getPublicUrl(bucket: string, key: string) {
     const encodedKey = key.split('/').map(encodeURIComponent).join('/');
-    return `https://${bucket}.s3.${region}.amazonaws.com/${encodedKey}`;
+    return `https://${bucket}.s3.amazonaws.com/${encodedKey}`;
 }
 
 /**
@@ -41,7 +41,6 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
-    ACL: 'public-read',
   });
 
   try {
@@ -50,7 +49,7 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     if (!region) {
       throw new Error('AWS region is not configured or could not be determined.');
     }
-    return getPublicUrl(BUCKET_NAME, key, region);
+    return getPublicUrl(BUCKET_NAME, key);
   } catch (error: any) {
     console.error(`Error uploading file "${fileName}" to S3. AWS-SDK-S3 Error:`, error);
     throw new Error(error.message || `File upload to AWS S3 failed.`);
@@ -102,3 +101,4 @@ export async function getFilesFromS3(path: string) {
     return [];
   }
 }
+
