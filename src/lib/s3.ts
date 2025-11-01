@@ -4,7 +4,7 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
-  region: 'eu-north-1', // Explicitly set the bucket region
+  region: 'eu-north-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -14,8 +14,8 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 function getPublicUrl(bucket: string, key: string, region: string) {
-    // The modern, path-style URL format is generally more compatible.
-    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+    const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+    return `https://${bucket}.s3.${region}.amazonaws.com/${encodedKey}`;
 }
 
 /**
@@ -31,8 +31,7 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     throw new Error('S3 bucket name is not configured.');
   }
   
-  // Sanitize the filename to remove problematic characters
-  const sanitizedFileName = fileName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
   const validPath = path.filter(segment => segment && segment.length > 0);
   const key = [...validPath, sanitizedFileName].join('/');
   
@@ -41,7 +40,7 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
-    ACL: 'public-read', // This makes the file publicly accessible
+    ACL: 'public-read',
   });
 
   try {
@@ -53,7 +52,6 @@ export async function uploadFileToS3(fileBuffer: Buffer, fileName: string, mimeT
     return getPublicUrl(BUCKET_NAME, key, region);
   } catch (error: any) {
     console.error(`Error uploading file "${fileName}" to S3. AWS-SDK-S3 Error:`, error);
-    // Throw a new, clean error to avoid circular structure issues.
     throw new Error(error.message || `File upload to AWS S3 failed.`);
   }
 }
