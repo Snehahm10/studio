@@ -37,16 +37,17 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
     }
 
+    // Correctly handle 1st year data, which is all static and under the '1' semester key
+    if (year === '1') {
+        const firstYearSubjects = branchData['1' as keyof typeof branchData] || [];
+        return NextResponse.json(firstYearSubjects);
+    }
+      
     const staticSubjectsForSemester: Subject[] = branchData[semester as keyof typeof branchData] || [];
     if (staticSubjectsForSemester.length === 0) {
         return NextResponse.json([]);
     }
-    
-    // If it's the first year, return the static data directly as it has no dynamic content from S3.
-    if (year === '1') {
-        return NextResponse.json(staticSubjectsForSemester);
-    }
-      
+
     // 2. Create a deep copy to avoid modifying the original vtu-data
     const subjectsMap = new Map<string, Subject>();
     staticSubjectsForSemester.forEach(staticSub => {
