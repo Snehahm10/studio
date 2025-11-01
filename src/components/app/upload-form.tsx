@@ -36,11 +36,13 @@ import {
 import { schemes, branches, years, semesters as allSemesters, cycles } from '@/lib/data';
 import { vtuResources } from '@/lib/vtu-data';
 import { Loader2, Upload, CheckCircle2, XCircle } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { uploadResource } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import { ExistingResources } from './existing-resources';
+import { Separator } from '../ui/separator';
 
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -78,6 +80,7 @@ export function UploadForm() {
   const [conflict, setConflict] = useState<{ show: boolean, existingFileKey: string | null }>({ show: false, existingFileKey: null });
   const { toast } = useToast();
   const [availableSubjects, setAvailableSubjects] = useState<{ id: string, name: string }[]>([]);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -92,13 +95,18 @@ export function UploadForm() {
     },
   });
 
-  const { watch, reset, resetField, register, handleSubmit } = form;
+  const { watch, reset, resetField, register, handleSubmit, getValues } = form;
   const watchedScheme = watch('scheme');
   const watchedBranch = watch('branch');
   const watchedSemester = watch('semester');
+  const watchedSubject = watch('subject');
   const selectedYear = watch('year');
   const resourceType = watch('resourceType');
   const fileRef = register('file');
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshCounter(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (watchedScheme && watchedBranch && watchedSemester) {
@@ -175,12 +183,12 @@ export function UploadForm() {
             setUploadStatus('complete');
             toast({
                 title: 'Upload Successful!',
-                description: `File uploaded. You will now be redirected.`,
+                description: `File uploaded successfully.`,
             });
-            reset();
-            setTimeout(() => {
-              router.push('/');
-            }, 2000);
+            // Instead of redirecting, just reset the form and refresh the list
+            resetField('file');
+            triggerRefresh(); 
+            setUploadStatus('pending');
         } else {
             throw new Error(result.error || "An unknown error occurred during upload.");
         }
@@ -211,7 +219,7 @@ export function UploadForm() {
       statusIndicatorContent = <p className="text-sm text-muted-foreground mt-1">Uploading to S3...</p>;
       break;
     case 'complete':
-      statusIndicatorContent = <div className="flex items-center text-sm text-green-600 mt-1"><CheckCircle2 className="mr-1 h-4 w-4" />Upload complete! Redirecting...</div>;
+      statusIndicatorContent = <div className="flex items-center text-sm text-green-600 mt-1"><CheckCircle2 className="mr-1 h-4 w-4" />Upload complete!</div>;
       break;
     case 'error':
       statusIndicatorContent = <div className="flex items-center text-sm text-destructive mt-1"><XCircle className="mr-1 h-4 w-4" />Upload failed.</div>;
@@ -220,6 +228,9 @@ export function UploadForm() {
       statusIndicatorContent = null;
   }
   
+  const selectedFilters = getValues();
+  const canShowExisting = selectedFilters.scheme && selectedFilters.branch && selectedFilters.semester && selectedFilters.subject;
+
   return (
     <>
     <Form {...form}>
@@ -435,6 +446,25 @@ export function UploadForm() {
       </form>
     </Form>
 
+    {canShowExisting && (
+        <div className='mt-8'>
+            <Separator />
+            <div className='mt-8'>
+                <h3 className="text-2xl font-semibold mb-4 text-primary">Manage Existing Resources</h3>
+                <ExistingResources 
+                    filters={{
+                        scheme: watchedScheme,
+                        branch: watchedBranch,
+                        semester: watchedSemester,
+                        subject: watchedSubject,
+                    }}
+                    onResourceDeleted={triggerRefresh}
+                    refreshKey={refreshCounter}
+                />
+            </div>
+        </div>
+    )}
+
     <AlertDialog open={conflict.show} onOpenChange={(open) => !open && setConflict({ show: false, existingFileKey: null })}>
           <AlertDialogContent>
               <AlertDialogHeader>
@@ -457,3 +487,4 @@ export function UploadForm() {
     </>
   );
 }
+

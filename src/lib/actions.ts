@@ -94,12 +94,22 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
         }
     }
     
-    if (overwrite && existingFileKey) {
+    // If we are overwriting, we need to delete the old file first.
+    // The `existingFileKey` comes from the conflict check.
+    // For question papers, we don't implement overwrite logic to allow multiple files, so we just upload.
+    if (overwrite && existingFileKey && resourceType === 'Notes') {
         await deleteFileFromS3(existingFileKey);
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const publicUrl = await uploadFileToS3(fileBuffer, file.name, file.type, path);
+    // For question papers, append a timestamp to the filename to ensure uniqueness
+    const finalFileName = resourceType === 'Question Paper' 
+      ? `${Date.now()}-${file.name}`
+      : file.name;
+      
+    const publicUrl = await uploadFileToS3(fileBuffer, finalFileName, file.type, path);
+    
+    // Revalidate the API route to ensure fresh data is fetched on next load
     revalidatePath('/api/resources');
 
     return {
@@ -119,6 +129,7 @@ export async function deleteResource(s3Key: string): Promise<{ success?: boolean
             return { error: 'S3 key is required for deletion.' };
         }
         await deleteFileFromS3(s3Key);
+        // Revalidate the API route that fetches these resources
         revalidatePath('/api/resources');
         return { success: true };
     } catch (error: any) {

@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const year = searchParams.get('year');
   const semester = searchParams.get('semester');
 
-  if (!scheme || !branch || !semester || !year) {
+  if (!scheme || !branch || !semester) {
     return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 });
   }
 
@@ -49,12 +49,12 @@ export async function GET(request: Request) {
                 if (!subject.notes) {
                     subject.notes = {};
                 }
-                // Since multiple files can exist, we'll just take the first one for this example.
-                // A more robust solution might handle multiple files per module.
+                // Since our new logic prevents multiple files per module, we take the first one.
                 subject.notes[moduleKey] = {
                     name: notesFiles[0].name,
                     url: notesFiles[0].url,
                     summary: notesFiles[0].summary,
+                    s3Key: notesFiles[0].s3Key,
                 };
             }
         }
@@ -67,11 +67,12 @@ export async function GET(request: Request) {
                 name: file.name,
                 url: file.url,
                 summary: file.summary,
+                s3Key: file.s3Key,
             }));
              if (!subject.questionPapers) {
                 subject.questionPapers = [];
             }
-            // Add new files, avoiding duplicates
+            // Add new files, avoiding duplicates based on URL
             driveQps.forEach(newQp => {
               if (!subject.questionPapers.some(existingQp => existingQp.url === newQp.url)) {
                 subject.questionPapers.push(newQp);
