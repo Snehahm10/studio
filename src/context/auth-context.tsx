@@ -40,6 +40,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = (email: string, password: string) => {
+    // In development, we bypass Firebase Auth and create a mock user.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("DEV MODE: Bypassing Firebase Auth for signup and creating a mock user.");
+      const mockUser: FirebaseUser = {
+        uid: `mock-user-uid-${Math.random().toString(36).substring(2)}`,
+        email: email,
+        displayName: 'Mock User',
+        photoURL: null,
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        providerId: 'password',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'mock-id-token',
+        getIdTokenResult: async () => ({
+          token: 'mock-id-token',
+          expirationTime: '',
+          authTime: '',
+          issuedAtTime: '',
+          signInProvider: null,
+          signInSecondFactor: null,
+          claims: {},
+        }),
+        reload: async () => {},
+        toJSON: () => ({}),
+      };
+      setUser(mockUser);
+      return Promise.resolve();
+    }
     return createUserWithEmailAndPassword(auth, email, password);
   };
 
