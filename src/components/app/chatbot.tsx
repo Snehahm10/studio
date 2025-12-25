@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { MessageSquare, Send, X, Bot, User, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getChatbotResponse } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
+import toast from 'react-hot-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,6 @@ export function Chatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -50,21 +49,13 @@ export function Chatbot() {
       const result = await getChatbotResponse([...messages, userMessage], input);
 
       if (result.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Chatbot Error',
-          description: result.error,
-        });
+        toast.error(result.error);
         setMessages((prev) => [...prev, { role: 'bot', content: "Sorry, I couldn't process that. Please try again." }]);
       } else if (result.answer) {
         setMessages((prev) => [...prev, { role: 'bot', content: result.answer as string }]);
       }
     } catch (error) {
-       toast({
-          variant: 'destructive',
-          title: 'Chatbot Error',
-          description: 'An unexpected error occurred.',
-        });
+       toast.error('An unexpected error occurred.');
        setMessages((prev) => [...prev, { role: 'bot', content: "Sorry, an error occurred. Please try again later." }]);
     } finally {
       setIsLoading(false);
@@ -78,6 +69,7 @@ export function Chatbot() {
           onClick={() => setIsOpen(true)}
           className="rounded-full w-16 h-16 bg-primary shadow-lg hover:bg-primary/90"
           aria-label="Open chat"
+          suppressHydrationWarning
         >
           <MessageSquare className="w-8 h-8 text-primary-foreground" />
         </Button>

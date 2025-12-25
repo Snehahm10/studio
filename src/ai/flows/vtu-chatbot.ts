@@ -31,14 +31,15 @@ const vtuChatbotPrompt = ai.definePrompt({
   name: 'vtuChatbotPrompt',
   input: {schema: VtuChatbotInputSchema},
   output: {schema: VtuChatbotOutputSchema},
-  prompt: `You are a chatbot assistant specialized in answering questions about Visvesvaraya Technological University (VTU) courses and syllabus.
+  prompt: `You are a chatbot assistant specialized in answering questions about related to the VTU courses and syllabus and your name is "Study Sphere Hub".
 
   Use the provided resources to answer the user's question. If the answer is not found in the resources, respond politely that you cannot answer the question.  Do not make up answers.
 
   Resources:
   {{resources}}
 
-  Question: {{{query}}}`,
+  Question: {{{query}}}
+  `,
 });
 
 const vtuChatbotFlow = ai.defineFlow(

@@ -1,11 +1,10 @@
 
 'use server';
 
-import { uploadFileToS3, deleteFileFromS3, checkForExistingFile } from '@/lib/s3';
+import { uploadFileToStorage, deleteFileFromStorage, checkForExistingFile } from '@/lib/storage';
 import { z } from 'zod';
 import { vtuChatbot } from '@/ai/flows/vtu-chatbot';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 
 const VTU_RESOURCES_TEXT = `
@@ -50,13 +49,15 @@ const UploadResourceOutputSchema = z.object({
   fileUrl: z.string().optional(),
   error: z.string().optional(),
   conflict: z.boolean().optional(),
-  existingFileKey: z.string().optional(),
+  existingFileId: z.string().optional(),
 });
 
 type UploadResourceOutput = z.infer<typeof UploadResourceOutputSchema>;
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 /**
- * Handles the file upload to AWS S3. This is a server action.
+ * Handles the file upload to Appwrite Storage. This is a server action.
  */
 export async function uploadResource(formData: FormData): Promise<UploadResourceOutput> {
   try {
@@ -68,11 +69,17 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     const module = formData.get('module') as string | null;
     const file = formData.get('file') as File;
     const overwrite = formData.get('overwrite') === 'true';
-    const existingFileKey = formData.get('existingFileKey') as string | null;
+    const existingFileId = formData.get('existingFileId') as string | null;
     
     if (!scheme || !branch || !semester || !subject || !resourceType || !file || file.size === 0) {
       return { error: 'Missing or invalid required form fields.' };
     }
+    
+    // Check file size
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return { error: 'File should be less than 10MB' };
+    }
+    
     if (resourceType === 'Notes' && !module) {
         return { error: 'Module is required for Notes.'};
     }
@@ -85,35 +92,36 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
     }
 
     if (!overwrite) {
-        const conflictingFileKey = await checkForExistingFile(path);
-        if (conflictingFileKey) {
+        const conflictingFileId = await checkForExistingFile(path);
+        if (conflictingFileId) {
             return {
                 conflict: true,
-                existingFileKey: conflictingFileKey
+                existingFileId: conflictingFileId
             };
         }
     }
     
     // If we are overwriting, we need to delete the old file first.
-    // The `existingFileKey` comes from the conflict check.
     // For question papers, we don't implement overwrite logic to allow multiple files, so we just upload.
-    if (overwrite && existingFileKey && resourceType === 'Notes') {
-        await deleteFileFromS3(existingFileKey);
+    if (overwrite && existingFileId && resourceType === 'Notes') {
+        await deleteFileFromStorage(existingFileId);
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     // For question papers, append a timestamp to the filename to ensure uniqueness
+    // Include path in filename for organization
+    const pathPrefix = path.join('_').replace(/[^a-zA-Z0-9_-]/g, '_');
     const finalFileName = resourceType === 'Question Paper' 
-      ? `${Date.now()}-${file.name}`
-      : file.name;
+      ? `${pathPrefix}_${Date.now()}_${file.name}`
+      : `${pathPrefix}_${file.name}`;
       
-    const publicUrl = await uploadFileToS3(fileBuffer, finalFileName, file.type, path);
+    const result = await uploadFileToStorage(fileBuffer, finalFileName, file.type, path);
     
     // Revalidate the API route to ensure fresh data is fetched on next load
     revalidatePath('/api/resources');
 
     return {
-      fileUrl: publicUrl,
+      fileUrl: result.url,
     };
   } catch (error: any) {
     console.error("Upload failed:", error);
@@ -123,12 +131,12 @@ export async function uploadResource(formData: FormData): Promise<UploadResource
   }
 }
 
-export async function deleteResource(s3Key: string): Promise<{ success?: boolean; error?: string }> {
+export async function deleteResource(fileId: string): Promise<{ success?: boolean; error?: string }> {
     try {
-        if (!s3Key) {
-            return { error: 'S3 key is required for deletion.' };
+        if (!fileId) {
+            return { error: 'File ID is required for deletion.' };
         }
-        await deleteFileFromS3(s3Key);
+        await deleteFileFromStorage(fileId);
         // Revalidate the API route that fetches these resources
         revalidatePath('/api/resources');
         return { success: true };

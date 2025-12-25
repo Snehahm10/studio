@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppHeader } from '@/components/app/header';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from 'react-hot-toast';
 import { Chatbot } from '@/components/app/chatbot';
 import { Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
@@ -30,10 +30,10 @@ export default function RootLayout({
         <AuthProvider>
           <div className="relative flex min-h-screen w-full flex-col">
             <AppHeader />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 px-4 sm:px-6 lg:px-8">{children}</main>
             <Chatbot />
           </div>
-          <Toaster />
+          <Toaster position="top-center" />
         </AuthProvider>
       </body>
     </html>
